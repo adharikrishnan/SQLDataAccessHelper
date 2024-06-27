@@ -2,13 +2,14 @@
 // Copyright (c) Advaith Harikrishnan. All rights reserved.
 // </copyright>"
 
-namespace SQLDataAccess.SQLServer
+namespace SQLDataAccess.SQLServer.DataAccess
 {
     using System;
     using System.Data;
     using System.Threading.Tasks;
     using Microsoft.Data.SqlClient;
     using Microsoft.Extensions.Configuration;
+    using SQLDataAccess.SQLServer.Exceptions;
 
     /// <summary>
     /// Base class for the data access classes which initiates the Database connections.
@@ -22,23 +23,29 @@ namespace SQLDataAccess.SQLServer
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SqlServerDataAccessBase"/> class.
+        /// This Constructor Initializes a instance of class wiht the default connection retrieval
+        /// operation provided by the IConfiguration with the specified connection string name.
         /// </summary>
         /// <param name="configuration">IConfiguration instance.</param>
-        public SqlServerDataAccessBase(IConfiguration configuration)
+        /// <param name="connectionStringName">The Connection String name.</param>
+        public SqlServerDataAccessBase(IConfiguration configuration, string connectionStringName)
         {
-            
+            this.ConnectionString = configuration.GetConnectionString(connectionStringName);
+            this.Configuration = configuration;
         }
 
         /// <summary>
-        /// Gets the Read and Write  Database Connection string.
+        /// The General Purpose Connection String that can be used
+        /// for both Read and Write Actions.
         /// </summary>
         /// <value>
         /// The Read and Write Database Connection string.
         /// </value>
-        protected virtual string ReadAndWriteConnectionString { get; }
+        protected virtual string ConnectionString { get; }
 
         /// <summary>
-        /// Gets the Readonly Database Connection string.
+        /// The Specilized Readonly Connection String that can be used
+        /// for read actions specifically.
         /// </summary>
         /// <value>
         /// The Readonly Database Connection string.
@@ -46,7 +53,13 @@ namespace SQLDataAccess.SQLServer
         protected virtual string ReadOnlyConnectionString { get; }
 
         /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// The IConfiguration Instance that can used for custom configurations
+        /// and settings in the inheriting class.
+        /// </summary>
+        protected IConfiguration Configuration { get; }
+
+        /// <summary>
+        /// The Dispose Implementation that disposes of all managed and unmanged resources.
         /// </summary>
         public void Dispose()
         {
@@ -64,7 +77,7 @@ namespace SQLDataAccess.SQLServer
         /// <returns>
         /// return the SQL Data Reader object.
         /// </returns>
-        protected static SqlDataReader ExecuteReader(SqlConnection conn, CommandType type, string cmdText, params SqlParameter[] parameters)
+        protected SqlDataReader ExecuteReader(SqlConnection conn, CommandType type, string cmdText, params SqlParameter[] parameters)
         {
             if (parameters == null)
             {
@@ -119,7 +132,7 @@ namespace SQLDataAccess.SQLServer
         /// <returns>
         /// return the SQL Data Reader object.
         /// </returns>
-        protected static async Task<SqlDataReader> ExecuteReaderAsync(SqlConnection conn, CommandType type, string cmdText, params SqlParameter[] parameters)
+        protected async Task<SqlDataReader> ExecuteReaderAsync(SqlConnection conn, CommandType type, string cmdText, params SqlParameter[] parameters)
         {
             if (parameters == null)
             {
@@ -173,7 +186,7 @@ namespace SQLDataAccess.SQLServer
         /// <returns>
         /// return the SQL Data Reader object.
         /// </returns>
-        protected static SqlDataReader ExecuteReader(SqlConnection conn, CommandType type, string cmdText)
+        protected SqlDataReader ExecuteReader(SqlConnection conn, CommandType type, string cmdText)
         {
             SqlCommand command = new SqlCommand(cmdText, conn);
             command.CommandType = type;
@@ -211,7 +224,7 @@ namespace SQLDataAccess.SQLServer
         /// <returns>
         /// return the SQL Data Reader object.
         /// </returns>
-        protected static async Task<SqlDataReader> ExecuteReaderAsync(SqlConnection conn, CommandType type, string cmdText)
+        protected async Task<SqlDataReader> ExecuteReaderAsync(SqlConnection conn, CommandType type, string cmdText)
         {
             SqlCommand command = new SqlCommand(cmdText, conn);
             command.CommandType = type;
@@ -250,7 +263,7 @@ namespace SQLDataAccess.SQLServer
         /// <returns>
         /// Number of rows affected.
         /// </returns>
-        protected static int ExecuteNonQuery(SqlConnection conn, CommandType type, string cmdText, params SqlParameter[] parameters)
+        protected int ExecuteNonQuery(SqlConnection conn, CommandType type, string cmdText, params SqlParameter[] parameters)
         {
             if (parameters == null)
             {
@@ -300,7 +313,7 @@ namespace SQLDataAccess.SQLServer
         /// <returns>
         /// Number of rows affected.
         /// </returns>
-        protected static async Task<int> ExecuteNonQueryAsync(SqlConnection conn, CommandType type, string cmdText, params SqlParameter[] parameters)
+        protected async Task<int> ExecuteNonQueryAsync(SqlConnection conn, CommandType type, string cmdText, params SqlParameter[] parameters)
         {
             if (parameters == null)
             {
@@ -349,7 +362,7 @@ namespace SQLDataAccess.SQLServer
         /// <returns>
         /// The scalar value.
         /// </returns>
-        protected static object ExecuteScalar(SqlConnection conn, CommandType type, string cmdText)
+        protected object ExecuteScalar(SqlConnection conn, CommandType type, string cmdText)
         {
             SqlCommand command = null;
             object returnValue = null;
@@ -389,7 +402,7 @@ namespace SQLDataAccess.SQLServer
         /// <returns>
         /// The scalar value.
         /// </returns>
-        protected static async Task<object> ExecuteScalarAsync(SqlConnection conn, CommandType type, string cmdText)
+        protected async Task<object> ExecuteScalarAsync(SqlConnection conn, CommandType type, string cmdText)
         {
             SqlCommand command = null;
             object returnValue = null;
@@ -430,7 +443,7 @@ namespace SQLDataAccess.SQLServer
         /// <returns>
         /// The scalar value.
         /// </returns>
-        protected static object ExecuteScalar(SqlConnection conn, CommandType type, string cmdText, params SqlParameter[] parameters)
+        protected object ExecuteScalar(SqlConnection conn, CommandType type, string cmdText, params SqlParameter[] parameters)
         {
             if (parameters == null)
             {
@@ -480,7 +493,7 @@ namespace SQLDataAccess.SQLServer
         /// <returns>
         /// The scalar value.
         /// </returns>
-        protected static async Task<object> ExecuteScalarAsync(SqlConnection conn, CommandType type, string cmdText, params SqlParameter[] parameters)
+        protected async Task<object> ExecuteScalarAsync(SqlConnection conn, CommandType type, string cmdText, params SqlParameter[] parameters)
         {
             if (parameters == null)
             {
@@ -581,9 +594,9 @@ namespace SQLDataAccess.SQLServer
                 if (disposing)
                 {
                     // dispose managed resources
-                    if (this.connection != null && this.connection.State == ConnectionState.Open)
+                    if (connection != null && connection.State == ConnectionState.Open)
                     {
-                        this.connection.Close();
+                        connection.Close();
                     }
                 }
             }
@@ -592,7 +605,7 @@ namespace SQLDataAccess.SQLServer
             }
             finally
             {
-                this.connection = null;
+                connection = null;
             }
         }
 
@@ -603,7 +616,7 @@ namespace SQLDataAccess.SQLServer
         /// <param name="commandText">Command text.</param>
         /// <param name="parameters">parameters of stored procedure.</param>
         /// <returns>Custom SQL exception.</returns>
-        private static SqlServerDataAccessException CreateCustomSqlException(SqlException sqlException, string commandText, params SqlParameter[] parameters)
+        private SqlServerDataAccessException CreateCustomSqlException(SqlException sqlException, string commandText, params SqlParameter[] parameters)
         {
             SqlServerDataAccessException customSqlException = null;
             customSqlException = new SqlServerDataAccessException(sqlException.Message)

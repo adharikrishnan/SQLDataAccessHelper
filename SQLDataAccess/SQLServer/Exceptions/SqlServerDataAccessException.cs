@@ -1,6 +1,6 @@
 ﻿
 
-namespace SQLDataAccess.SQLServer
+namespace SQLDataAccess.SQLServer.Exceptions
 {
     using System;
     using System.Runtime.Serialization;
@@ -76,12 +76,12 @@ namespace SQLDataAccess.SQLServer
         {
             get
             {
-                return this.errors;
+                return errors;
             }
 
             set
             {
-                this.errors = value;
+                errors = value;
             }
         }
 
@@ -95,12 +95,12 @@ namespace SQLDataAccess.SQLServer
         {
             get
             {
-                return this.sqlparams;
+                return sqlparams;
             }
 
             set
             {
-                this.sqlparams = value;
+                sqlparams = value;
             }
         }
 
@@ -115,7 +115,7 @@ namespace SQLDataAccess.SQLServer
             get
             {
                 string parameters = string.Empty;
-                foreach (SqlParameter parameter in this.SqlParams)
+                foreach (SqlParameter parameter in SqlParams)
                 {
                     parameters += string.Join(parameter.ParameterName, parameter.Value.ToString());
                 }
@@ -134,12 +134,12 @@ namespace SQLDataAccess.SQLServer
         {
             get
             {
-                return this.commandText;
+                return commandText;
             }
 
             set
             {
-                this.commandText = value;
+                commandText = value;
             }
         }
 
@@ -157,7 +157,7 @@ namespace SQLDataAccess.SQLServer
         /// </summary>
         /// <param name="info">Instance of SerializationInfo</param>
         /// <param name="context">Instance of StreamingContext</param>
-        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             if (info == null)

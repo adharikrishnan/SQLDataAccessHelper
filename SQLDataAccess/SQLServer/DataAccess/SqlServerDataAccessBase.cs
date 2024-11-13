@@ -9,6 +9,7 @@ namespace SQLDataAccess.SQLServer.DataAccess
     using System.Threading.Tasks;
     using Microsoft.Data.SqlClient;
     using Microsoft.Extensions.Configuration;
+    using SQLDataAccess.Common.Models;
     using SQLDataAccess.SQLServer.Exceptions;
 
     /// <summary>
@@ -26,12 +27,24 @@ namespace SQLDataAccess.SQLServer.DataAccess
         /// This Constructor Initializes a instance of class wiht the default connection retrieval
         /// operation provided by the IConfiguration with the specified connection string name.
         /// </summary>
-        /// <param name="configuration">IConfiguration instance.</param>
+        /// <param name="configuration">The IConfiguration instance.</param>
         /// <param name="connectionStringName">The Connection String name.</param>
         public SqlServerDataAccessBase(IConfiguration configuration, string connectionStringName)
         {
             this.ConnectionString = configuration.GetConnectionString(connectionStringName);
             this.Configuration = configuration;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SqlServerDataAccessBase"/> class.
+        /// </summary>
+        /// <param name="configuration">The IConfiguration Instance.</param>
+        /// <param name="sqlCredentials">The SQL Credentials.</param>
+        public SqlServerDataAccessBase(IConfiguration configuration, SqlCredentials sqlCredentials)
+        {
+            this.Configuration = configuration;
+            this.ConnectionString = sqlCredentials.ConnectionString;
+            this.ReadOnlyConnectionString = sqlCredentials.ReadOnlyConnectionString;
         }
 
         /// <summary>
@@ -50,7 +63,7 @@ namespace SQLDataAccess.SQLServer.DataAccess
         /// <value>
         /// The Readonly Database Connection string.
         /// </value>
-        protected virtual string ReadOnlyConnectionString { get; }
+        protected virtual string? ReadOnlyConnectionString { get; }
 
         /// <summary>
         /// The IConfiguration Instance that can used for custom configurations
@@ -570,11 +583,11 @@ namespace SQLDataAccess.SQLServer.DataAccess
         }
 
         /// <summary>
-        /// Creates a database connection.
+        /// Connects to the database with the given connection string.
         /// </summary>
         /// <param name="connectionString">The connection string.</param>
         /// <returns>
-        /// Connection to database.
+        /// The Database connection as a SqlConnection Object.
         /// </returns>
         protected async Task<SqlConnection> OpenConnectionAsync(string connectionString)
         {
@@ -584,7 +597,7 @@ namespace SQLDataAccess.SQLServer.DataAccess
         }
 
         /// <summary>
-        /// Releases unmanaged and - optionally - managed resources.
+        /// Releases unmanaged and optionally the managed resources.
         /// </summary>
         /// <param name="disposing">if true, releases both managed and unmanaged resources; otherwise releases only unmanaged resources.</param>
         protected virtual void Dispose(bool disposing)
@@ -594,9 +607,9 @@ namespace SQLDataAccess.SQLServer.DataAccess
                 if (disposing)
                 {
                     // dispose managed resources
-                    if (connection != null && connection.State == ConnectionState.Open)
+                    if (this.connection != null && this.connection.State == ConnectionState.Open)
                     {
-                        connection.Close();
+                        this.connection.Close();
                     }
                 }
             }
@@ -605,7 +618,7 @@ namespace SQLDataAccess.SQLServer.DataAccess
             }
             finally
             {
-                connection = null;
+                this.connection = null;
             }
         }
 

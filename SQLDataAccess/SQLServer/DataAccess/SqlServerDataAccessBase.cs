@@ -32,7 +32,6 @@ namespace SQLDataAccess.SQLServer.DataAccess
         public SqlServerDataAccessBase(IConfiguration configuration, string connectionStringName)
         {
             this.ConnectionString = configuration.GetConnectionString(connectionStringName);
-            this.Configuration = configuration;
         }
 
         /// <summary>
@@ -40,9 +39,8 @@ namespace SQLDataAccess.SQLServer.DataAccess
         /// </summary>
         /// <param name="configuration">The IConfiguration Instance.</param>
         /// <param name="sqlCredentials">The SQL Credentials.</param>
-        public SqlServerDataAccessBase(IConfiguration configuration, SqlCredentials sqlCredentials)
+        public SqlServerDataAccessBase(SqlCredentials sqlCredentials)
         {
-            this.Configuration = configuration;
             this.ConnectionString = sqlCredentials.ConnectionString;
             this.ReadOnlyConnectionString = sqlCredentials.ReadOnlyConnectionString;
         }
@@ -64,12 +62,6 @@ namespace SQLDataAccess.SQLServer.DataAccess
         /// The Readonly Database Connection string.
         /// </value>
         protected virtual string? ReadOnlyConnectionString { get; }
-
-        /// <summary>
-        /// The IConfiguration Instance that can used for custom configurations
-        /// and settings in the inheriting class.
-        /// </summary>
-        protected IConfiguration Configuration { get; }
 
         /// <summary>
         /// The Dispose Implementation that disposes of all managed and unmanged resources.

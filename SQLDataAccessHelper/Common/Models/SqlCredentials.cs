@@ -2,7 +2,7 @@
 // Copyright (c) Advaith Harikrishnan. All rights reserved.
 // </copyright>"
 
-namespace SQLDataAccess.Common.Models
+namespace SQLDataAccessHelper.Common.Models
 {
     /// <summary>
     /// The SQL Credentials model to pass essential Credentials to connect to a database.

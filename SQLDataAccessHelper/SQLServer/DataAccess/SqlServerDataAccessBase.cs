@@ -2,16 +2,16 @@
 // Copyright (c) Advaith Harikrishnan. All rights reserved.
 // </copyright>"
 
-namespace SQLDataAccess.SQLServer.DataAccess
+namespace SQLDataAccessHelper.SQLServer.DataAccess
 {
     using System;
     using System.Data;
     using System.Threading.Tasks;
     using Microsoft.Data.SqlClient;
     using Microsoft.Extensions.Configuration;
-    using SQLDataAccess.Common.Exceptions;
-    using SQLDataAccess.Common.Models;
-    using SQLDataAccess.SQLServer.Exceptions;
+    using SQLDataAccessHelper.Common.Exceptions;
+    using SQLDataAccessHelper.Common.Models;
+    using SQLDataAccessHelper.SQLServer.Exceptions;
 
     /// <summary>
     /// Base class for the data access classes which initiates the Database connections.

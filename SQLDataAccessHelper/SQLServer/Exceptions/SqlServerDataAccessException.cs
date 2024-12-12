@@ -2,11 +2,11 @@
 // Copyright (c) Advaith Harikrishnan. All rights reserved.
 // </copyright>"
 
-namespace SQLDataAccess.SQLServer.Exceptions
+namespace SQLDataAccessHelper.SQLServer.Exceptions
 {
     using System;
     using Microsoft.Data.SqlClient;
-    using SQLDataAccess.Common.Exceptions;
+    using SQLDataAccessHelper.Common.Exceptions;
 
     /// <summary>
     /// Exception Class to deal with SQL Server DataAccess Exceptions.

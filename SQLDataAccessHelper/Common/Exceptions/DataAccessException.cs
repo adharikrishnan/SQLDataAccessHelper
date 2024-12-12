@@ -3,7 +3,7 @@
 // </copyright>"
 
 
-namespace SQLDataAccess.Common.Exceptions
+namespace SQLDataAccessHelper.Common.Exceptions
 {
     public class DataAccessException : Exception
     {

@@ -14,7 +14,7 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
     using SQLDataAccessHelper.SQLServer.Exceptions;
 
     /// <summary>
-    /// Base class for the data access classes which initiates the Database connections.
+    /// Base class for Sql Server (TSQL) Opertions. Inherit this class with you implementation to use.
     /// </summary>
     public class SqlServerDataAccessBase : IDisposable
     {
@@ -25,20 +25,19 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SqlServerDataAccessBase"/> class.
-        /// This Constructor Initializes a instance of class with the default connection retrieval
-        /// operation provided by the IConfiguration with the specified connection string name.
+        /// This Constructor Initializes an instance of class with the Default Connection String
+        /// from the IConfiguration Instance with the given connection string path.
         /// </summary>
         /// <param name="configuration">The IConfiguration instance.</param>
-        /// <param name="connectionStringName">The Connection String name.</param>
-        public SqlServerDataAccessBase(IConfiguration configuration, string connectionStringName)
+        /// <param name="connectionStringPath">The Connection String Path.</param>
+        public SqlServerDataAccessBase(IConfiguration configuration, string connectionStringPath)
         {
-            this.ConnectionString = configuration.GetConnectionString(connectionStringName);
+            this.ConnectionString = configuration[connectionStringPath];
         }
-
+        
         /// <summary>
         /// Initializes a new instance of the <see cref="SqlServerDataAccessBase"/> class.
         /// </summary>
-        /// <param name="configuration">The IConfiguration Instance.</param>
         /// <param name="sqlCredentials">The SQL Credentials.</param>
         public SqlServerDataAccessBase(SqlCredentials sqlCredentials)
         {
@@ -190,10 +189,10 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
         /// <summary>
         /// Executes a Transact-SQL statement against the connection and returns the number of rows affected.
         /// </summary>
-        /// <param name="connection">Connection to database.</param>
-        /// <param name="commandType">Command type.</param>
-        /// <param name="commandText">Command text.</param>
-        /// <param name="parameters">Parameters passed to the query.</param>
+        /// <param name="connection">The Connection to database.</param>
+        /// <param name="commandType">The Command type.</param>
+        /// <param name="commandText">The Command text.</param>
+        /// <param name="parameters">The Parameters passed to the query.</param>
         /// <returns>
         /// Number of rows affected.
         /// </returns>
@@ -333,7 +332,7 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
         /// </returns>
         protected SqlConnection OpenConnection(string connectionString)
         {
-            var connection = new SqlConnection(connectionString);
+            SqlConnection connection = new SqlConnection(connectionString);
             connection.Open();
             return connection;
         }
@@ -347,7 +346,7 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
         protected async Task<SqlConnection> OpenConnectionAsync()
         {
             if (this.ConnectionString is null)
-                throw new DataAccessException("The Conncetion String has not been specified.");
+                throw new DataAccessException("The Connection String has not been specified.");
 
             return await this.OpenConnectionAsync(this.ConnectionString).ConfigureAwait(false);
         }
@@ -361,7 +360,7 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
         protected async Task<SqlConnection> OpenReadonlyConnectionAsync()
         {
             if (this.ReadOnlyConnectionString is null)
-                throw new DataAccessException("The Readonly Conncetion String has not been specified.");
+                throw new DataAccessException("The Readonly Connection String has not been specified.");
                 
             return await this.OpenConnectionAsync(this.ReadOnlyConnectionString).ConfigureAwait(false);
         }
@@ -375,7 +374,7 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
         /// </returns>
         protected async Task<SqlConnection> OpenConnectionAsync(string connectionString)
         {
-            var connection = new SqlConnection(connectionString);
+            SqlConnection connection = new SqlConnection(connectionString);
             await connection.OpenAsync().ConfigureAwait(false);
             return connection;
         }

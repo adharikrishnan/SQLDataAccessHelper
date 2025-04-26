@@ -2,19 +2,19 @@
 // Copyright (c) Advaith Harikrishnan. All rights reserved.
 // </copyright>"
 
-namespace SQLDataAccess.SQLServer.DataAccess
+namespace SQLDataAccessHelper.SQLServer.DataAccess
 {
     using System;
     using System.Data;
     using System.Threading.Tasks;
     using Microsoft.Data.SqlClient;
     using Microsoft.Extensions.Configuration;
-    using SQLDataAccess.Common.Exceptions;
-    using SQLDataAccess.Common.Models;
-    using SQLDataAccess.SQLServer.Exceptions;
+    using SQLDataAccessHelper.Common.Exceptions;
+    using Common.Models;
+    using Exceptions;
 
     /// <summary>
-    /// Base class for the data access classes which initiates the Database connections.
+    /// Base class for Sql Server (TSQL) Opertions. Inherit this class with you implementation to use.
     /// </summary>
     public class SqlServerDataAccessBase : IDisposable
     {
@@ -25,25 +25,44 @@ namespace SQLDataAccess.SQLServer.DataAccess
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SqlServerDataAccessBase"/> class.
-        /// This Constructor Initializes a instance of class wiht the default connection retrieval
-        /// operation provided by the IConfiguration with the specified connection string name.
+        /// This Constructor Initializes an instance of class with the Default Connection String
+        /// from the IConfiguration Instance with the given connection string path.
         /// </summary>
         /// <param name="configuration">The IConfiguration instance.</param>
-        /// <param name="connectionStringName">The Connection String name.</param>
-        public SqlServerDataAccessBase(IConfiguration configuration, string connectionStringName)
+        /// <param name="connectionStringPath">The Connection String Path.</param>
+        public SqlServerDataAccessBase(IConfiguration configuration, string connectionStringPath)
         {
-            this.ConnectionString = configuration.GetConnectionString(connectionStringName);
+            this.ConnectionString = configuration[connectionStringPath];
         }
-
+        
         /// <summary>
         /// Initializes a new instance of the <see cref="SqlServerDataAccessBase"/> class.
         /// </summary>
-        /// <param name="configuration">The IConfiguration Instance.</param>
         /// <param name="sqlCredentials">The SQL Credentials.</param>
         public SqlServerDataAccessBase(SqlCredentials sqlCredentials)
         {
             this.ConnectionString = sqlCredentials.ConnectionString;
             this.ReadOnlyConnectionString = sqlCredentials.ReadOnlyConnectionString;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SqlServerDataAccessBase"/> class.
+        /// </summary>
+        /// <param name="connectionString">The General SQL Purpose Connection String</param>
+        public SqlServerDataAccessBase(string connectionString)
+        {
+            this.ConnectionString = connectionString;
+        }
+        
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SqlServerDataAccessBase"/> class.
+        /// </summary>
+        /// <param name="connectionString">The General SQL Purpose Connection String</param>
+        /// <param name="readOnlyConnectionString"></param>
+        public SqlServerDataAccessBase(string connectionString, string readOnlyConnectionString)
+        {
+            this.ConnectionString = connectionString;
+            this.ReadOnlyConnectionString = readOnlyConnectionString;
         }
 
         /// <summary>
@@ -76,16 +95,16 @@ namespace SQLDataAccess.SQLServer.DataAccess
         /// <summary>
         /// Method which executes the SQL command to retrieve data from database.
         /// </summary>
-        /// <param name="connection">Connection to database.</param>
-        /// <param name="commandType">Command type.</param>
-        /// <param name="commandText">Command text.</param>
-        /// <param name="parameters">Parameters passed to function.</param>
+        /// <param name="connection">The Connection to database.</param>
+        /// <param name="commandType">The Command type.</param>
+        /// <param name="commandText">The Command text.</param>
+        /// <param name="parameters">The Parameters passed to function.</param>
         /// <returns>
-        /// return the SQL Data Reader object.
+        /// Returns a SQL Data Reader object.
         /// </returns>
         protected SqlDataReader ExecuteReader(SqlConnection connection, CommandType commandType, string commandText, params SqlParameter[] parameters)
         {
-            SqlCommand command = null;
+            SqlCommand command = null!;
             SqlDataReader reader = null;
 
             try
@@ -97,16 +116,16 @@ namespace SQLDataAccess.SQLServer.DataAccess
             {
                 if (ex is SqlException sqlException)
                 {
-                    throw new SqlServerDataAccessException($"A Sql Server Data Access Exception Occured: {sqlException.Message}", commandText, commandType.ToString(), parameters, sqlException);
+                    throw new SqlServerDataAccessException(sqlException.Message, commandText, commandType.ToString(), parameters, sqlException);
                 }
                 else
                 {
-                    throw new DataAccessException($"A Sql Server Data Access Exception Occured: {ex.Message}", ex);
+                    throw new DataAccessException(ex.Message, ex);
                 }
             }
             finally
             {
-                command.Dispose();
+                this.DisposeCommand(command);
             }
 
             return reader;
@@ -115,16 +134,16 @@ namespace SQLDataAccess.SQLServer.DataAccess
         /// <summary>
         /// Method which executes the SQL command to retrieve data from database.
         /// </summary>
-        /// <param name="connection">Connection to database.</param>
-        /// <param name="commandType">Command type.</param>
-        /// <param name="commandText">Command text.</param>
-        /// <param name="parameters">Parameters passed to function.</param>
+        /// <param name="connection">The Connection to database.</param>
+        /// <param name="commandType">The Command type.</param>
+        /// <param name="commandText">The Command text.</param>
+        /// <param name="parameters">The Parameters passed to function.</param>
         /// <returns>
-        /// return the SQL Data Reader object.
+        /// Returns a SQL Data Reader object.
         /// </returns>
         protected async Task<SqlDataReader> ExecuteReaderAsync(SqlConnection connection, CommandType commandType, string commandText, params SqlParameter[] parameters)
         {
-            SqlCommand command = null;
+            SqlCommand command = null!;
             SqlDataReader reader = null;
 
             try
@@ -136,16 +155,16 @@ namespace SQLDataAccess.SQLServer.DataAccess
             {
                 if (ex is SqlException sqlException)
                 {
-                    throw new SqlServerDataAccessException($"A Sql Server Data Access Exception Occured: {sqlException.Message}", commandText, commandType.ToString(), parameters, sqlException);
+                    throw new SqlServerDataAccessException(sqlException.Message, commandText, commandType.ToString(), parameters, sqlException);
                 }
                 else
                 {
-                    throw new DataAccessException($"A Sql Server Data Access Exception Occured: {ex.Message}", ex);
+                    throw new DataAccessException(ex.Message, ex);
                 }
             }
             finally
             {
-                command.Dispose();
+                await this.DisposeCommandAsync(command).ConfigureAwait(false);                
             }
 
             return reader;
@@ -154,169 +173,146 @@ namespace SQLDataAccess.SQLServer.DataAccess
         /// <summary>
         /// Executes a Transact-SQL statement against the connection and returns the number of rows affected.
         /// </summary>
-        /// <param name="connection">Connection to database.</param>
-        /// <param name="commandType">Command type.</param>
-        /// <param name="cmdText">Command text.</param>
-        /// <param name="parameters">Parameters passed to the query.</param>
+        /// <param name="connection">The Connection to database.</param>
+        /// <param name="commandType">The Command type.</param>
+        /// <param name="cmdText">The Command text.</param>
+        /// <param name="parameters">The Parameters passed to the query.</param>
         /// <returns>
-        /// Number of rows affected.
+        /// Number of rows affected as an Integer.
         /// </returns>
         protected int ExecuteNonQuery(SqlConnection connection, CommandType commandType, string commandText, params SqlParameter[] parameters)
         {
-
-            SqlCommand command = null;
-            int rowsAffected = 0;
+            SqlCommand command = null!;
 
             try
             {
                 command = this.CreateSqlCommand(connection, commandType, commandText, parameters);
-                rowsAffected = command.ExecuteNonQuery();
+                return command.ExecuteNonQuery();
             }
             catch (Exception ex)
             {
                 if (ex is SqlException sqlException)
                 {
-                    throw new SqlServerDataAccessException($"A Sql Server Data Access Exception Occured: {sqlException.Message}", commandText, commandType.ToString(), parameters, sqlException);
+                    throw new SqlServerDataAccessException(sqlException.Message, commandText, commandType.ToString(), parameters, sqlException);
                 }
                 else
                 {
-                    throw new DataAccessException($"A Sql Server Data Access Exception Occured: {ex.Message}", ex);
+                    throw new DataAccessException(ex.Message, ex);
                 }
             }
             finally
             {
-                command.Dispose();
+                this.DisposeCommand(command);
             }
-
-            return rowsAffected;
         }
 
         /// <summary>
         /// Executes a Transact-SQL statement against the connection and returns the number of rows affected.
         /// </summary>
-        /// <param name="connection">Connection to database.</param>
-        /// <param name="commandType">Command type.</param>
-        /// <param name="commandText">Command text.</param>
-        /// <param name="parameters">Parameters passed to the query.</param>
+        /// <param name="connection">The Connection to database.</param>
+        /// <param name="commandType">The Command type.</param>
+        /// <param name="commandText">The Command text.</param>
+        /// <param name="parameters">The Parameters passed to the query.</param>
         /// <returns>
-        /// Number of rows affected.
+        /// Number of rows affected as an Integer.
         /// </returns>
         protected async Task<int> ExecuteNonQueryAsync(SqlConnection connection, CommandType commandType, string commandText, params SqlParameter[] parameters)
         {
 
-            SqlCommand command = null;
-            int rowsAffected = 0;
+            SqlCommand command = null!;
 
             try
             {
                 command = this.CreateSqlCommand(connection, commandType, commandText, parameters);
-                rowsAffected = await command.ExecuteNonQueryAsync().ConfigureAwait(false);
+                return await command.ExecuteNonQueryAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 if (ex is SqlException sqlException)
                 {
-                    throw new SqlServerDataAccessException($"A Sql Server Data Access Exception Occured: {sqlException.Message}", commandText, commandType.ToString(), parameters, sqlException);
+                    throw new SqlServerDataAccessException(sqlException.Message, commandText, commandType.ToString(), parameters, sqlException);
                 }
                 else
                 {
-                    throw new DataAccessException($"A Sql Server Data Access Exception Occured: {ex.Message}", ex);
+                    throw new DataAccessException(ex.Message, ex);
                 }
             }
             finally
             {
-                command.Dispose();
+                await this.DisposeCommandAsync(command).ConfigureAwait(false);
             }
-
-            return rowsAffected;
         }
 
         /// <summary>
-        /// Executes a Transact-SQL statement against the connection and returns the scalar value.
+        /// Executes a TSQL Statement against an Open Connection and returns a Scalar Result .
         /// </summary>
-        /// <param name="connection">Connection to database.</param>
-        /// <param name="commandType">Command type.</param>
-        /// <param name="commandText">Command text.</param>
-        /// <param name="parameters">Parameters passed to the query.</param>
+        /// <param name="connection">The Connection to database.</param>
+        /// <param name="commandType">The Command type.</param>
+        /// <param name="commandText">The Command text.</param>
+        /// <param name="parameters">The Parameters passed to the query.</param>
         /// <returns>
-        /// The scalar value.
+        /// The Scalar Value as a generic.
         /// </returns>
-        protected object ExecuteScalar(SqlConnection connection, CommandType commandType, string commandText, params SqlParameter[] parameters)
+        protected T? ExecuteScalar<T>(SqlConnection connection, CommandType commandType, string commandText, params SqlParameter[] parameters)
         {
-            if (parameters == null)
-            {
-                throw new ArgumentNullException(nameof(parameters));
-            }
-
-            SqlCommand command = null;
-            object returnValue = null;
+            SqlCommand command = null!;
 
             try
             {
                 command = this.CreateSqlCommand(connection, commandType, commandText, parameters);
-                returnValue = command.ExecuteScalar();
+                return (T)command.ExecuteScalar();
             }
             catch (Exception ex)
             {
                 if (ex is SqlException sqlException)
                 {
-                    throw new SqlServerDataAccessException($"A Sql Server Data Access Exception Occured: {sqlException.Message}", commandText, commandType.ToString(), parameters, sqlException);
+                    throw new SqlServerDataAccessException(sqlException.Message, commandText, commandType.ToString(), parameters, sqlException);
                 }
                 else
                 {
-                    throw new DataAccessException($"A Sql Server Data Access Exception Occured: {ex.Message}", ex);
+                    throw new DataAccessException(ex.Message, ex);
                 }
             }
             finally
             {
-                command.Dispose();
+                this.DisposeCommand(command);
             }
-
-            return returnValue;
         }
 
         /// <summary>
-        /// Executes a Transact-SQL statement against the connection and returns the scalar value.
+        /// Executes a TSQL Statement against an Open Connection and returns a Scalar Result Asynchronously.
         /// </summary>
-        /// <param name="connection">Connection to database.</param>
-        /// <param name="commandType">Command type.</param>
-        /// <param name="commandText">Command text.</param>
-        /// <param name="parameters">Parameters passed to the query.</param>
+        /// <param name="connection">The Database Connection.</param>
+        /// <param name="commandType">The Command type.</param>
+        /// <param name="commandText">The Command Text.</param>
+        /// <param name="parameters">The Parameters to be added (Optional).</param>
         /// <returns>
-        /// The scalar value.
+        /// The Scalar Value as a generic.
         /// </returns>
-        protected async Task<object> ExecuteScalarAsync(SqlConnection connection, CommandType commandType, string commandText, params SqlParameter[] parameters)
+        protected async Task<T?> ExecuteScalarAsync<T>(SqlConnection connection, CommandType commandType, string commandText, params SqlParameter[] parameters)
         {
-            if (parameters == null)
-            {
-                throw new ArgumentNullException(nameof(parameters));
-            }
-
-            SqlCommand command = null;
-            object returnValue = null;
+            SqlCommand command = null!;
 
             try
             {
                 command = this.CreateSqlCommand(connection, commandType, commandText, parameters);
-                returnValue = await command.ExecuteScalarAsync().ConfigureAwait(false);
+                return (T?)await command.ExecuteScalarAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 if (ex is SqlException sqlException)
                 {
-                    throw new SqlServerDataAccessException($"A Sql Server Data Access Exception Occured: {sqlException.Message}", commandText, commandType.ToString(), parameters, sqlException);
+                    throw new SqlServerDataAccessException(sqlException.Message, commandText, commandType.ToString(), parameters, sqlException);
                 }
                 else
                 {
-                    throw new DataAccessException($"A Sql Server Data Access Exception Occured: {ex.Message}", ex);
+                    throw new DataAccessException(ex.Message, ex);
                 }
             }
             finally
             {
-                command.Dispose();
+                await this.DisposeCommandAsync(command).ConfigureAwait(false);
             }
-
-            return returnValue;
         }
 
         /// <summary>
@@ -328,7 +324,7 @@ namespace SQLDataAccess.SQLServer.DataAccess
         protected SqlConnection OpenConnection()
         {
             if (this.ConnectionString is null)
-                throw new DataAccessException("The Conncetion String has not been specified.");
+                throw new DataAccessException("The Connection String has not been specified.");
 
             return this.OpenConnection(this.ConnectionString);
         }
@@ -342,7 +338,7 @@ namespace SQLDataAccess.SQLServer.DataAccess
         protected SqlConnection OpenReadonlyConnection()
         {
             if (this.ReadOnlyConnectionString is null)
-                throw new DataAccessException("The Readonly Conncetion String has not been specified.");
+                throw new DataAccessException("The Readonly Connection String has not been specified.");
 
             return this.OpenConnection(this.ReadOnlyConnectionString);
         }
@@ -356,7 +352,7 @@ namespace SQLDataAccess.SQLServer.DataAccess
         /// </returns>
         protected SqlConnection OpenConnection(string connectionString)
         {
-            var connection = new SqlConnection(connectionString);
+            SqlConnection connection = new SqlConnection(connectionString);
             connection.Open();
             return connection;
         }
@@ -370,7 +366,7 @@ namespace SQLDataAccess.SQLServer.DataAccess
         protected async Task<SqlConnection> OpenConnectionAsync()
         {
             if (this.ConnectionString is null)
-                throw new DataAccessException("The Conncetion String has not been specified.");
+                throw new DataAccessException("The Connection String has not been specified.");
 
             return await this.OpenConnectionAsync(this.ConnectionString).ConfigureAwait(false);
         }
@@ -384,7 +380,7 @@ namespace SQLDataAccess.SQLServer.DataAccess
         protected async Task<SqlConnection> OpenReadonlyConnectionAsync()
         {
             if (this.ReadOnlyConnectionString is null)
-                throw new DataAccessException("The Readonly Conncetion String has not been specified.");
+                throw new DataAccessException("The Readonly Connection String has not been specified.");
                 
             return await this.OpenConnectionAsync(this.ReadOnlyConnectionString).ConfigureAwait(false);
         }
@@ -398,7 +394,7 @@ namespace SQLDataAccess.SQLServer.DataAccess
         /// </returns>
         protected async Task<SqlConnection> OpenConnectionAsync(string connectionString)
         {
-            var connection = new SqlConnection(connectionString);
+            SqlConnection connection = new SqlConnection(connectionString);
             await connection.OpenAsync().ConfigureAwait(false);
             return connection;
         }
@@ -453,6 +449,27 @@ namespace SQLDataAccess.SQLServer.DataAccess
             }
 
             return sqlCommand;
+        }
+
+        /// <summary>
+        /// Disposes the SqlCommand provided Command.
+        /// </summary>
+        /// <param name="sqlCommand">The Sql Command.</param>
+        private void DisposeCommand(SqlCommand sqlCommand)
+        {
+            if (sqlCommand != null)
+                sqlCommand?.Dispose();
+        }
+
+        /// <summary>
+        /// Disposes the provided SqlCommand asynchronously.
+        /// </summary>
+        /// <param name="sqlCommand"></param>
+        /// <returns></returns>
+        private async Task DisposeCommandAsync(SqlCommand sqlCommand)
+        {
+            if (sqlCommand != null)
+                await sqlCommand.DisposeAsync().ConfigureAwait(false);
         }
     }
 }

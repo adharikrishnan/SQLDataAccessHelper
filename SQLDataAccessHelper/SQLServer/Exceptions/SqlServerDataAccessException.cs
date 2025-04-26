@@ -2,11 +2,11 @@
 // Copyright (c) Advaith Harikrishnan. All rights reserved.
 // </copyright>"
 
-namespace SQLDataAccess.SQLServer.Exceptions
+namespace SQLDataAccessHelper.SQLServer.Exceptions
 {
     using System;
     using Microsoft.Data.SqlClient;
-    using SQLDataAccess.Common.Exceptions;
+    using SQLDataAccessHelper.Common.Exceptions;
 
     /// <summary>
     /// Exception Class to deal with SQL Server DataAccess Exceptions.
@@ -26,6 +26,11 @@ namespace SQLDataAccess.SQLServer.Exceptions
         public SqlException? sqlException { get; }
 
         /// <summary>
+        /// The Default Error Message Template
+        /// </summary>
+        private static string ErrorMessageTemplate = "A Sql Server Data Access Exception Occured: {0}";
+
+        /// <summary>
         /// Creates an instance of the SqlServerDataAccessException class 
         /// </summary>
         public SqlServerDataAccessException()
@@ -36,7 +41,7 @@ namespace SQLDataAccess.SQLServer.Exceptions
         /// </summary>
         /// <param name="message">The Exception Message.</para>
         public SqlServerDataAccessException(string message)
-            : base (message)
+            : base (string.Format(ErrorMessageTemplate, message))
         {}
 
         /// <summary>
@@ -46,7 +51,7 @@ namespace SQLDataAccess.SQLServer.Exceptions
         /// <param name="commandText">The Command Text.</param>
         /// <param name="commandType">The Command Type.</param>
         public SqlServerDataAccessException(string message, string commandText, string commandType)
-            : base (message, commandText, commandType)
+            : base (string.Format(ErrorMessageTemplate, message), commandText, commandType)
         {}
 
         /// <summary>
@@ -58,7 +63,7 @@ namespace SQLDataAccess.SQLServer.Exceptions
         /// <param name="sqlParameters">The SQL Parameters.</param>
         /// <param name="sqlException">The MS SQL Exception.</param>
         public SqlServerDataAccessException(string message, string commandText, string commandType, SqlParameter[]? sqlParameters, SqlException sqlException)
-            : base (message, commandText, commandType)
+            : base (string.Format(ErrorMessageTemplate, message), commandText, commandType)
         {
             this.sqlException = sqlException;
             this.SqlParameters = ParseSqlParameters(sqlParameters);
@@ -70,14 +75,19 @@ namespace SQLDataAccess.SQLServer.Exceptions
         /// <param name="message">The Exception Message.</param>
         /// <param name="sqlException">The MS SQL Exception.</param>
         public SqlServerDataAccessException(string message, SqlException sqlException)
-            : base (message)
+            : base (string.Format(ErrorMessageTemplate, message))
         {
             this.sqlException = sqlException;
         }
 
+        /// <summary>
+        /// Parses the Sql Parameter Array to a single string.
+        /// </summary>
+        /// <param name="sqlParameters">The Sql Parameters</param>
+        /// <returns>The Sql Parameters as a string (Null if no parameters are there).</returns>
         private string? ParseSqlParameters(SqlParameter[] sqlParameters)
         {
-            if (sqlParameters is null || sqlParameters.Length is 0)
+            if (sqlParameters == null || sqlParameters.Length == 0)
                 return null;
 
             string parameters = "Parameters:\n";

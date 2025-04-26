@@ -81,13 +81,13 @@ namespace SQLDataAccessHelper.SQLServer.Exceptions
         }
 
         /// <summary>
-        /// Parses the Sql Paramter Array to a single string.
+        /// Parses the Sql Parameter Array to a single string.
         /// </summary>
         /// <param name="sqlParameters">The Sql Parameters</param>
         /// <returns>The Sql Parameters as a string (Null if no parameters are there).</returns>
         private string? ParseSqlParameters(SqlParameter[] sqlParameters)
         {
-            if (sqlParameters is null || sqlParameters.Length is 0)
+            if (sqlParameters == null || sqlParameters.Length == 0)
                 return null;
 
             string parameters = "Parameters:\n";

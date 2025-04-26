@@ -10,8 +10,8 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
     using Microsoft.Data.SqlClient;
     using Microsoft.Extensions.Configuration;
     using SQLDataAccessHelper.Common.Exceptions;
-    using SQLDataAccessHelper.Common.Models;
-    using SQLDataAccessHelper.SQLServer.Exceptions;
+    using Common.Models;
+    using Exceptions;
 
     /// <summary>
     /// Base class for Sql Server (TSQL) Opertions. Inherit this class with you implementation to use.
@@ -46,6 +46,26 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="SqlServerDataAccessBase"/> class.
+        /// </summary>
+        /// <param name="connectionString">The General SQL Purpose Connection String</param>
+        public SqlServerDataAccessBase(string connectionString)
+        {
+            this.ConnectionString = connectionString;
+        }
+        
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SqlServerDataAccessBase"/> class.
+        /// </summary>
+        /// <param name="connectionString">The General SQL Purpose Connection String</param>
+        /// <param name="readOnlyConnectionString"></param>
+        public SqlServerDataAccessBase(string connectionString, string readOnlyConnectionString)
+        {
+            this.ConnectionString = connectionString;
+            this.ReadOnlyConnectionString = readOnlyConnectionString;
+        }
+
+        /// <summary>
         /// The General Purpose Connection String that can be used
         /// for both Read and Write Actions.
         /// </summary>
@@ -75,16 +95,16 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
         /// <summary>
         /// Method which executes the SQL command to retrieve data from database.
         /// </summary>
-        /// <param name="connection">Connection to database.</param>
-        /// <param name="commandType">Command type.</param>
-        /// <param name="commandText">Command text.</param>
-        /// <param name="parameters">Parameters passed to function.</param>
+        /// <param name="connection">The Connection to database.</param>
+        /// <param name="commandType">The Command type.</param>
+        /// <param name="commandText">The Command text.</param>
+        /// <param name="parameters">The Parameters passed to function.</param>
         /// <returns>
-        /// return the SQL Data Reader object.
+        /// Returns a SQL Data Reader object.
         /// </returns>
         protected SqlDataReader ExecuteReader(SqlConnection connection, CommandType commandType, string commandText, params SqlParameter[] parameters)
         {
-            SqlCommand command = null;
+            SqlCommand command = null!;
             SqlDataReader reader = null;
 
             try
@@ -114,16 +134,16 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
         /// <summary>
         /// Method which executes the SQL command to retrieve data from database.
         /// </summary>
-        /// <param name="connection">Connection to database.</param>
-        /// <param name="commandType">Command type.</param>
-        /// <param name="commandText">Command text.</param>
-        /// <param name="parameters">Parameters passed to function.</param>
+        /// <param name="connection">The Connection to database.</param>
+        /// <param name="commandType">The Command type.</param>
+        /// <param name="commandText">The Command text.</param>
+        /// <param name="parameters">The Parameters passed to function.</param>
         /// <returns>
-        /// return the SQL Data Reader object.
+        /// Returns a SQL Data Reader object.
         /// </returns>
         protected async Task<SqlDataReader> ExecuteReaderAsync(SqlConnection connection, CommandType commandType, string commandText, params SqlParameter[] parameters)
         {
-            SqlCommand command = null;
+            SqlCommand command = null!;
             SqlDataReader reader = null;
 
             try
@@ -153,16 +173,16 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
         /// <summary>
         /// Executes a Transact-SQL statement against the connection and returns the number of rows affected.
         /// </summary>
-        /// <param name="connection">Connection to database.</param>
-        /// <param name="commandType">Command type.</param>
-        /// <param name="cmdText">Command text.</param>
-        /// <param name="parameters">Parameters passed to the query.</param>
+        /// <param name="connection">The Connection to database.</param>
+        /// <param name="commandType">The Command type.</param>
+        /// <param name="cmdText">The Command text.</param>
+        /// <param name="parameters">The Parameters passed to the query.</param>
         /// <returns>
-        /// Number of rows affected.
+        /// Number of rows affected as an Integer.
         /// </returns>
         protected int ExecuteNonQuery(SqlConnection connection, CommandType commandType, string commandText, params SqlParameter[] parameters)
         {
-            SqlCommand command = null;
+            SqlCommand command = null!;
 
             try
             {
@@ -194,12 +214,12 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
         /// <param name="commandText">The Command text.</param>
         /// <param name="parameters">The Parameters passed to the query.</param>
         /// <returns>
-        /// Number of rows affected.
+        /// Number of rows affected as an Integer.
         /// </returns>
         protected async Task<int> ExecuteNonQueryAsync(SqlConnection connection, CommandType commandType, string commandText, params SqlParameter[] parameters)
         {
 
-            SqlCommand command = null;
+            SqlCommand command = null!;
 
             try
             {
@@ -224,18 +244,18 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
         }
 
         /// <summary>
-        /// Executes a Transact-SQL statement against the connection and returns the scalar value.
+        /// Executes a TSQL Statement against an Open Connection and returns a Scalar Result .
         /// </summary>
-        /// <param name="connection">Connection to database.</param>
-        /// <param name="commandType">Command type.</param>
-        /// <param name="commandText">Command text.</param>
-        /// <param name="parameters">Parameters passed to the query.</param>
+        /// <param name="connection">The Connection to database.</param>
+        /// <param name="commandType">The Command type.</param>
+        /// <param name="commandText">The Command text.</param>
+        /// <param name="parameters">The Parameters passed to the query.</param>
         /// <returns>
-        /// The scalar value.
+        /// The Scalar Value as a generic.
         /// </returns>
         protected T? ExecuteScalar<T>(SqlConnection connection, CommandType commandType, string commandText, params SqlParameter[] parameters)
         {
-            SqlCommand command = null;
+            SqlCommand command = null!;
 
             try
             {
@@ -267,11 +287,11 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
         /// <param name="commandText">The Command Text.</param>
         /// <param name="parameters">The Parameters to be added (Optional).</param>
         /// <returns>
-        /// The Scalar Value as a generic for easier type use.
+        /// The Scalar Value as a generic.
         /// </returns>
         protected async Task<T?> ExecuteScalarAsync<T>(SqlConnection connection, CommandType commandType, string commandText, params SqlParameter[] parameters)
         {
-            SqlCommand command = null;
+            SqlCommand command = null!;
 
             try
             {
@@ -304,7 +324,7 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
         protected SqlConnection OpenConnection()
         {
             if (this.ConnectionString is null)
-                throw new DataAccessException("The Conncetion String has not been specified.");
+                throw new DataAccessException("The Connection String has not been specified.");
 
             return this.OpenConnection(this.ConnectionString);
         }
@@ -318,7 +338,7 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
         protected SqlConnection OpenReadonlyConnection()
         {
             if (this.ReadOnlyConnectionString is null)
-                throw new DataAccessException("The Readonly Conncetion String has not been specified.");
+                throw new DataAccessException("The Readonly Connection String has not been specified.");
 
             return this.OpenConnection(this.ReadOnlyConnectionString);
         }

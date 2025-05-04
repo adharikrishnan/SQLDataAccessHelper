@@ -1,12 +1,16 @@
 using System.Data;
+using System.Data.Common;
 using Microsoft.Data.SqlClient;
 
-namespace SQLDataAccessHelper.SQLServer.Common;
+namespace SQLDataAccessHelper.Common.Helpers;
 
 /// <summary>
-/// Helper Class for Common Methods
+/// Command Helper to 
 /// </summary>
-public static class SqlServerHelpers
+public class CommandHelper<TConnection, TCommand, TParameter>
+    where TConnection : DbConnection
+    where TCommand : DbCommand, new()
+    where TParameter : DbParameter
 {
     /// <summary>
     /// Creates a Sql command with the given parameters.
@@ -16,12 +20,16 @@ public static class SqlServerHelpers
     /// <param name="commandText">The Command Text.</param>
     /// <param name="sqlParameters">The Sql Parameters to add.</param>
     /// <returns></returns>
-    public static SqlCommand CreateSqlCommand(SqlConnection connection, CommandType commandType, string commandText,
-        params SqlParameter[] sqlParameters)
+    public TCommand CreateSqlCommand(TConnection connection,
+        CommandType commandType, string commandText, params TParameter[] sqlParameters)
     {
-        SqlCommand sqlCommand = new SqlCommand(commandText, connection);
-        sqlCommand.CommandType = commandType;
-        foreach (SqlParameter param in sqlParameters)
+        TCommand sqlCommand = new TCommand()
+        {
+            CommandText = commandText,
+            CommandType = commandType,
+            Connection = connection
+        };
+        foreach (TParameter param in sqlParameters)
         {
             if (param.Direction is (ParameterDirection)3 or (ParameterDirection)1 &&
                 param.Value is null)

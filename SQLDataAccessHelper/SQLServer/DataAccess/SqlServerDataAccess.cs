@@ -1,10 +1,11 @@
+
+namespace SQLDataAccessHelper.SQLServer.DataAccess;
+
 using System.Data;
 using Microsoft.Data.SqlClient;
 using SQLDataAccessHelper.Common.Exceptions;
-using SQLDataAccessHelper.SQLServer.Exceptions;
-using static SQLDataAccessHelper.SQLServer.Common.SqlServerHelpers;
-
-namespace SQLDataAccessHelper.SQLServer.DataAccess;
+using Common.Helpers;
+using Exceptions;
 
 /// <summary>
 /// Managed Helper class to help connections to
@@ -16,6 +17,11 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     /// The Private Sql Connection Instance.
     /// </summary>
     private SqlConnection _connection;
+    
+    /// <summary>
+    /// Private Command Helper Instance
+    /// </summary>
+    private CommandHelper<SqlConnection, SqlCommand, SqlParameter> _commandHelper = new();
 
     /// <summary>
     /// Creates an Instance, initializing a Sql Connection with the provided Database Connection String.
@@ -26,7 +32,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
         _connection = new SqlConnection(connectionString);
     }
 
-    #region Public Syncronous Operations
+    #region Public Synchronous Operations
 
     /// <summary>
     /// Disposes all managed and unmanaged resources.
@@ -66,7 +72,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
         try
         {
             SqlCommand? command;
-            using (command = CreateSqlCommand(_connection, commandType, commandText, parameters))
+            using (command = _commandHelper.CreateSqlCommand(_connection, commandType, commandText, parameters))
             {
                 reader = command.ExecuteReader();
             }
@@ -101,7 +107,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
         try
         {
             SqlCommand command;
-            using (command = CreateSqlCommand(_connection, commandType, commandText, parameters))
+            using (command = _commandHelper.CreateSqlCommand(_connection, commandType, commandText, parameters))
             {
                 return command.ExecuteNonQuery();
             }
@@ -133,7 +139,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
         try
         {
             SqlCommand command;
-            using (command = CreateSqlCommand(_connection, commandType, commandText, parameters))
+            using (command = _commandHelper.CreateSqlCommand(_connection, commandType, commandText, parameters))
             {
                 return (T)command.ExecuteScalar();
             }
@@ -192,7 +198,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
         try
         {
             SqlCommand command;
-            await using (command = CreateSqlCommand(_connection, commandType, commandText, parameters))
+            await using (command = _commandHelper.CreateSqlCommand(_connection, commandType, commandText, parameters))
             {
                 reader = await command.ExecuteReaderAsync().ConfigureAwait(false);
             }
@@ -226,7 +232,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
         try
         {
             SqlCommand command;
-            await using (command = CreateSqlCommand(_connection, commandType, commandText, parameters))
+            await using (command = _commandHelper.CreateSqlCommand(_connection, commandType, commandText, parameters))
             {
                 return await command.ExecuteNonQueryAsync().ConfigureAwait(false);
             }
@@ -258,7 +264,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
         try
         {
             SqlCommand command;
-            await using (command = CreateSqlCommand(_connection, commandType, commandText, parameters))
+            await using (command = _commandHelper.CreateSqlCommand(_connection, commandType, commandText, parameters))
             {
                 return (T?)await command.ExecuteScalarAsync().ConfigureAwait(false);
             }

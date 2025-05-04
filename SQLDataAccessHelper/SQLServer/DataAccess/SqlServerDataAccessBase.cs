@@ -2,22 +2,23 @@
 // Copyright (c) Advaith Harikrishnan. All rights reserved.
 // </copyright>"
 
+
+
 namespace SQLDataAccessHelper.SQLServer.DataAccess
 {
-    using System;
+    
     using System.Data;
-    using System.Threading.Tasks;
     using Microsoft.Data.SqlClient;
     using Microsoft.Extensions.Configuration;
     using SQLDataAccessHelper.Common.Exceptions;
-    using SQLDataAccessHelper.Common.Models;
-    using static Common.SqlServerHelpers;
+    using Common.Models;
+    using Common.Helpers;
     using Exceptions;
-
+    
     /// <summary>
     /// Unmanaged Base class for Sql Server (TSql) Operations. Inherit this class with you implementation to use.
     /// </summary>
-    public class SqlServerDataAccessBase : IDisposable
+    public class SqlServerDataAccessBase
     {
         #region Public Constructors
 
@@ -30,7 +31,8 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
         /// <param name="connectionStringPath">The Connection String Path.</param>
         public SqlServerDataAccessBase(IConfiguration configuration, string connectionStringPath)
         {
-            this.ConnectionString = configuration[connectionStringPath];
+            this.ConnectionString = configuration[connectionStringPath] 
+                                    ?? throw new DataAccessException($"Connection String could not be found from the specified path - {connectionStringPath}");
         }
 
         /// <summary>
@@ -64,6 +66,11 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
         }
 
         #endregion
+    
+        /// <summary>
+        /// Private Command Helper Instance
+        /// </summary>
+        private CommandHelper<SqlConnection, SqlCommand, SqlParameter> _commandHelper = new();
 
         /// <summary>
         /// The General Purpose Connection String that can be used
@@ -75,23 +82,15 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
         protected virtual string ConnectionString { get; } = null!;
 
         /// <summary>
-        /// The Specilized Readonly Connection String that can be used
+        /// The Specialized Readonly Connection String that can be used
         /// for read actions specifically.
         /// </summary>
         /// <value>
         /// The Readonly Database Connection string.
         /// </value>
         protected virtual string? ReadOnlyConnectionString { get; }
-
-        /// <summary>
-        /// The Dispose Implementation that disposes of all managed and unmanaged resources.
-        /// </summary>
-        public void Dispose()
-        {
-            GC.SuppressFinalize(this);
-        }
-
-        #region Synchronous Opertions
+        
+        #region Synchronous Operations
 
         /// <summary>
         /// Method which executes the SQL command to retrieve data from database.
@@ -111,7 +110,7 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
             try
             {
                 SqlCommand? command;
-                using (command = CreateSqlCommand(connection, commandType, commandText, parameters))
+                using (command = _commandHelper.CreateSqlCommand(connection, commandType, commandText, parameters))
                 {
                     reader = command.ExecuteReader();
                 }
@@ -147,7 +146,7 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
             try
             {
                 SqlCommand command;
-                using (command = CreateSqlCommand(connection, commandType, commandText, parameters))
+                using (command = _commandHelper.CreateSqlCommand(connection, commandType, commandText, parameters))
                 {
                     return command.ExecuteNonQuery();
                 }
@@ -180,7 +179,7 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
             try
             {
                 SqlCommand command;
-                using (command = CreateSqlCommand(connection, commandType, commandText, parameters))
+                using (command = _commandHelper.CreateSqlCommand(connection, commandType, commandText, parameters))
                 {
                     return (T)command.ExecuteScalar();
                 }
@@ -241,10 +240,10 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
 
         #endregion
 
-        #region Async Opertions
+        #region Async Operations
 
         /// <summary>
-        /// Method which executes the SQL command to retrieve data from database.
+        /// Executes a Transact-SQL Command against the given connection and returns a data reader object.
         /// </summary>
         /// <param name="connection">The Database Connection.</param>
         /// <param name="commandType">The Command type.</param>
@@ -261,7 +260,7 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
             try
             {
                 SqlCommand command;
-                await using (command = CreateSqlCommand(connection, commandType, commandText, parameters))
+                await using (command = _commandHelper.CreateSqlCommand(connection, commandType, commandText, parameters))
                 {
                     reader = await command.ExecuteReaderAsync().ConfigureAwait(false);
                 }
@@ -296,7 +295,7 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
             try
             {
                 SqlCommand command;
-                await using (command = CreateSqlCommand(connection, commandType, commandText, parameters))
+                await using (command = _commandHelper.CreateSqlCommand(connection, commandType, commandText, parameters))
                 {
                     return await command.ExecuteNonQueryAsync().ConfigureAwait(false);
                 }
@@ -314,7 +313,7 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
         }
 
         /// <summary>
-        /// Executes a TSQL Statement against an Open Connection and returns a Scalar Result Asynchronously.
+        /// Executes a Transact-SQL Statement against an Open Connection and returns a Scalar Result Asynchronously.
         /// </summary>
         /// <param name="connection">The Database Connection.</param>
         /// <param name="commandType">The Command type.</param>
@@ -329,7 +328,7 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
             try
             {
                 SqlCommand command;
-                await using (command = CreateSqlCommand(connection, commandType, commandText, parameters))
+                await using (command = _commandHelper.CreateSqlCommand(connection, commandType, commandText, parameters))
                 {
                     return (T?)await command.ExecuteScalarAsync().ConfigureAwait(false);
                 }
@@ -389,12 +388,5 @@ namespace SQLDataAccessHelper.SQLServer.DataAccess
         }
 
         #endregion
-
-        /// <summary>
-        /// Releases unmanaged and managed resources.
-        /// </summary>
-        protected virtual void DisposeConnections()
-        {
-        }
     }
 }

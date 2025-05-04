@@ -1,11 +1,14 @@
-using System.Data;
-using System.Data.Common;
-using Microsoft.Data.SqlClient;
+// "<copyright file="CommandHelper.cs">
+// Copyright (c) Advaith Harikrishnan. All rights reserved.
+// </copyright>"
 
 namespace SQLDataAccessHelper.Common.Helpers;
 
+using System.Data;
+using System.Data.Common;
+
 /// <summary>
-/// Command Helper to 
+/// Helper class to Standardise Sql Command creation generically.
 /// </summary>
 public class CommandHelper<TConnection, TCommand, TParameter>
     where TConnection : DbConnection

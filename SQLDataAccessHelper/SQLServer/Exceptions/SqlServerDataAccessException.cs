@@ -2,77 +2,76 @@
 // Copyright (c) Advaith Harikrishnan. All rights reserved.
 // </copyright>"
 
-namespace SQLDataAccessHelper.SQLServer.Exceptions
+namespace SQLDataAccessHelper.SQLServer.Exceptions;
+
+using Microsoft.Data.SqlClient;
+using SQLDataAccessHelper.Common.Exceptions;
+
+/// <summary>
+/// Exception Class to deal with SQL Server DataAccess Exceptions.
+/// </summary>
+public class SqlServerDataAccessException : DataAccessException
 {
-    using System;
-    using Microsoft.Data.SqlClient;
-    using SQLDataAccessHelper.Common.Exceptions;
+    /// <summary>
+    /// The Sql Parameters as a string.
+    /// </summary>
+    public string? SqlParameters { get; }
 
     /// <summary>
-    /// Exception Class to deal with SQL Server DataAccess Exceptions.
+    /// The MS Sql Exception Instance.
+    ///  Contains more exact information about the exception.
     /// </summary>
-    [Serializable]
-    public class SqlServerDataAccessException : DataAccessException
+    public SqlException? SqlException { get; }
+
+    /// <summary>
+    /// The Default Error Message Template
+    /// </summary>
+    private static readonly string _errorMessageTemplate = "A SQL Server Data Access Exception Occured: {0}";
+
+    /// <summary>
+    /// Creates an instance of the SqlServerDataAccessException class 
+    /// </summary>
+    /// <param name="message">The Exception Message.</param>
+    public SqlServerDataAccessException(string message)
+        : base(string.Format(_errorMessageTemplate, message))
     {
-        /// <summary>
-        /// The Sql Parameters as a string.
-        /// </summary>
-        public string? SqlParameters { get; }
-        
-        /// <summary>
-        /// The MS Sql Exception Instance.
-        ///  Contains more exact information about the exception.
-        /// </summary>
-        public SqlException? sqlException { get; }
+    }
 
-        /// <summary>
-        /// The Default Error Message Template
-        /// </summary>
-        private static string _errorMessageTemplate = "A SQL Server Data Access Exception Occured: {0}";
+    /// <summary>
+    /// Creates an instance of the SqlServerDataAccessException class 
+    /// </summary>
+    /// <param name="message">The Exception Message.</param>
+    /// <param name="commandText">The Command Text.</param>
+    /// <param name="commandType">The Command Type.</param>
+    public SqlServerDataAccessException(string message, string commandText, string commandType)
+        : base(string.Format(_errorMessageTemplate, message), commandText, commandType)
+    {
+    }
 
-        /// <summary>
-        /// Creates an instance of the SqlServerDataAccessException class 
-        /// </summary>
-        /// <param name="message">The Exception Message.</para>
-        public SqlServerDataAccessException(string message)
-            : base (string.Format(_errorMessageTemplate, message))
-        {}
+    /// <summary>
+    /// Creates an instance of the SqlServerDataAccessException class 
+    /// </summary>
+    /// <param name="message">The Exception Message.</param>
+    /// <param name="commandText">The Command Text.</param>
+    /// <param name="commandType">The Command Type.</param>
+    /// <param name="sqlParameters">The SQL Parameters.</param>
+    /// <param name="sqlException">The MS SQL Exception.</param>
+    public SqlServerDataAccessException(string message, string commandText, string commandType,
+        SqlParameter[]? sqlParameters, SqlException sqlException)
+        : base(string.Format(_errorMessageTemplate, message), commandText, commandType)
+    {
+        this.SqlException = sqlException;
+        this.SqlParameters = ParseSqlParameters(sqlParameters);
+    }
 
-        /// <summary>
-        /// Creates an instance of the SqlServerDataAccessException class 
-        /// </summary>
-        /// <param name="message">The Exception Message.</param>
-        /// <param name="commandText">The Command Text.</param>
-        /// <param name="commandType">The Command Type.</param>
-        public SqlServerDataAccessException(string message, string commandText, string commandType)
-            : base (string.Format(_errorMessageTemplate, message), commandText, commandType)
-        {}
-
-        /// <summary>
-        /// Creates an instance of the SqlServerDataAccessException class 
-        /// </summary>
-        /// <param name="message">The Exception Message.</param>
-        /// <param name="commandText">The Command Text.</param>
-        /// <param name="commandType">The Command Type.</param>
-        /// <param name="sqlParameters">The SQL Parameters.</param>
-        /// <param name="sqlException">The MS SQL Exception.</param>
-        public SqlServerDataAccessException(string message, string commandText, string commandType, SqlParameter[]? sqlParameters, SqlException sqlException)
-            : base (string.Format(_errorMessageTemplate, message), commandText, commandType)
-        {
-            this.sqlException = sqlException;
-            this.SqlParameters = ParseSqlParameters(sqlParameters);
-        }
-
-        /// <summary>
-        /// Creates an instance of the SqlServerDataAccessException class 
-        /// </summary>
-        /// <param name="message">The Exception Message.</param>
-        /// <param name="sqlException">The MS SQL Exception.</param>
-        public SqlServerDataAccessException(string message, SqlException sqlException)
-            : base (string.Format(_errorMessageTemplate, message))
-        {
-            this.sqlException = sqlException;
-        }
-        
+    /// <summary>
+    /// Creates an instance of the SqlServerDataAccessException class 
+    /// </summary>
+    /// <param name="message">The Exception Message.</param>
+    /// <param name="sqlException">The MS SQL Exception.</param>
+    public SqlServerDataAccessException(string message, SqlException sqlException)
+        : base(string.Format(_errorMessageTemplate, message))
+    {
+        this.SqlException = sqlException;
     }
 }

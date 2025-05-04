@@ -1,15 +1,16 @@
-using Npgsql;
-using SQLDataAccessHelper.PostgreSQL.Exceptions;
+// "<copyright file="PostgreSqlDataAccessBase.cs">
+// Copyright (c) Advaith Harikrishnan. All rights reserved.
+// </copyright>"
 
 namespace SQLDataAccessHelper.PostgreSQL.DataAccess;
 
+using Npgsql;
+using Exceptions;
 using System.Data;
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Common.Exceptions;
 using Common.Helpers;
 using Common.Models;
-using SQLServer.Exceptions;
 
 public class PostgreSqlDataAccessBase
 {

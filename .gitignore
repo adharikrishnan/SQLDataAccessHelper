@@ -364,3 +364,5 @@ FodyWeavers.xsd
 
 # Ignore Rider Generated Files
 .idea*/
+
+test_connection_strings.txt

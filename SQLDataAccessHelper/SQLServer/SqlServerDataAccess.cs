@@ -1,36 +1,89 @@
 
-namespace SQLDataAccessHelper.SQLServer.DataAccess;
-
 using System.Data;
 using Microsoft.Data.SqlClient;
-using SQLDataAccessHelper.Common.Exceptions;
-using Common.Helpers;
-using Exceptions;
+using Microsoft.Extensions.Configuration;
+using SQLDataAccessHelper.Common.Helpers;
+using SQLDataAccessHelper.Models;
+using SQLDataAccessHelper.Exceptions;
+
+namespace SQLDataAccessHelper.SQLServer;
 
 /// <summary>
-/// Managed Helper class to help connections to
-/// a Sql Server Database with the provided Connection String
+/// Managed Helper class that help streamline connections, read and write operations to
+/// a SQL Server Database.
 /// </summary>
 public class SqlServerDataAccess : IDisposable, IAsyncDisposable
 {
     /// <summary>
     /// The Private Sql Connection Instance.
     /// </summary>
-    private SqlConnection _connection;
+    private SqlConnection? _connection;
     
     /// <summary>
     /// Private Command Helper Instance
     /// </summary>
-    private CommandHelper<SqlConnection, SqlCommand, SqlParameter> _commandHelper = new();
+    private readonly CommandHelper<SqlConnection, SqlCommand, SqlParameter> _commandHelper = new();
+    
+    /// <summary>
+    /// The general purpose connection string that can be used
+    /// for both read and write Actions.
+    /// </summary>
+    private readonly string _connectionString;
 
     /// <summary>
-    /// Creates an Instance, initializing a Sql Connection with the provided Database Connection String.
+    /// The readonly connection string that can be used
+    /// for read actions specifically.
     /// </summary>
-    /// <param name="connectionString">The Connection String.</param>
+    private readonly string? _readOnlyConnectionString;
+
+    #region Public Constructors
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SqlServerDataAccess"/> class.
+    /// This Constructor Initializes an instance of class with the Default Connection String
+    /// from the IConfiguration Instance with the given connection string path.
+    /// </summary>
+    /// <param name="configuration">The IConfiguration instance.</param>
+    /// <param name="connectionStringPath">The Connection String Path.</param>
+    public SqlServerDataAccess(IConfiguration configuration, string connectionStringPath)
+    {
+        _connectionString = configuration[connectionStringPath]
+                                ?? throw new DataAccessException(
+                                    $"Connection String could not be found from the specified path - {connectionStringPath}");
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SqlServerDataAccess "/> class.
+    /// </summary>
+    /// <param name="sqlCredentials">The SQL Credentials.</param>
+    public SqlServerDataAccess(SqlCredentials sqlCredentials)
+    {
+        _connectionString = sqlCredentials.ConnectionString;
+        _readOnlyConnectionString = sqlCredentials.ReadOnlyConnectionString;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SqlServerDataAccess "/> class.
+    /// </summary>
+    /// <param name="connectionString">The General SQL Purpose Connection String</param>
     public SqlServerDataAccess(string connectionString)
     {
-        _connection = new SqlConnection(connectionString);
+        _connectionString = connectionString;
     }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SqlServerDataAccess "/> class.
+    /// </summary>
+    /// <param name="connectionString">The General SQL Purpose Connection String</param>
+    /// <param name="readOnlyConnectionString"></param>
+    public SqlServerDataAccess(string connectionString, string readOnlyConnectionString)
+    {
+        _connectionString = connectionString;
+        _readOnlyConnectionString = readOnlyConnectionString;
+    }
+    
+    #endregion
+
 
     #region Public Synchronous Operations
 
@@ -39,34 +92,55 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     /// </summary>
     public void Dispose()
     {
-        if (this._connection.State == ConnectionState.Open)
-            _connection.Close();
+        if (_connection is not null)
+        {
+            if (_connection.State is ConnectionState.Open)
+                _connection.Close();
 
-        _connection?.Dispose();
+            _connection.Dispose();
+        }
     }
 
     /// <summary>
-    /// Opens the SQL Connection (Use this in a using Scope)
+    /// Opens a SQL Connection (Use this in a using Scope)
     /// </summary>
     /// <returns>This Instance of the class.</returns>
-    public SqlServerDataAccess Open()
+    public SqlServerDataAccess OpenConnection()
     {
-        this._connection.Open();
+        _connection = new SqlConnection(_connectionString);
+        _connection.Open();
         return this;
     }
-
+    
     /// <summary>
-    /// Method which executes the SQL command to retrieve data from database.
+    /// Opens a Readonly SQL Connection (Use this in a using Scope)
+    /// </summary>
+    /// <returns>This Instance of the class.</returns>
+    public SqlServerDataAccess OpenReadonlyConnection()
+    {
+        if (string.IsNullOrWhiteSpace(_readOnlyConnectionString))
+            throw new DataAccessException("Readonly Connection String is not configured. Please provide a Read Only Connection through one of the Constructors or use the general use OpenConnection() method.");
+
+        _connection = new SqlConnection(_readOnlyConnectionString); 
+        _connection.Open();
+        return this;
+    }
+    
+    /// <summary>
+    /// Executes a psql Command against the given connection and returns a data reader object.
     /// </summary>
     /// <param name="commandType">The Command type.</param>
     /// <param name="commandText">The Command text.</param>
     /// <param name="parameters">The Parameters passed to function.</param>
     /// <returns>
-    /// Returns a SQL Data Reader object.
+    /// Returns a Npgsql Data Reader object.
     /// </returns>
     public SqlDataReader ExecuteReader(CommandType commandType, string commandText,
         params SqlParameter[] parameters)
     {
+        if (_connection is null)
+            throw new DataAccessException("Connection is not initialized. Please use OpenConnection() or OpenReadonlyConnection() to initialize the connection first.");
+
         SqlDataReader? reader = null;
 
         try
@@ -93,7 +167,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
 
 
     /// <summary>
-    /// Executes a T-SQL statement against the connection and returns the number of rows affected.
+    /// Executes a psql statement against the connection and returns the number of rows affected.
     /// </summary>
     /// <param name="commandType">The Command type.</param>
     /// <param name="commandText">The Command text.</param>
@@ -104,6 +178,9 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     public int ExecuteNonQuery(CommandType commandType, string commandText,
         params SqlParameter[] parameters)
     {
+        if (_connection is null)
+            throw new DataAccessException("Connection is not initialized. Please use OpenConnection() or OpenReadonlyConnection() to initialize the connection first.");
+
         try
         {
             SqlCommand command;
@@ -125,7 +202,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     }
 
     /// <summary>
-    /// Executes a T-SQL Statement against an Open Connection and returns a Scalar Result.
+    /// Executes a psql Statement against an Open Connection and returns a Scalar Result .
     /// </summary>
     /// <param name="commandType">The Command type.</param>
     /// <param name="commandText">The Command text.</param>
@@ -136,12 +213,15 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     public T? ExecuteScalar<T>(CommandType commandType, string commandText,
         params SqlParameter[] parameters)
     {
+        if (_connection is null)
+            throw new DataAccessException("Connection is not initialized. Please use OpenConnection() or OpenReadonlyConnection() to initialize the connection first.");
+
         try
         {
             SqlCommand command;
             using (command = _commandHelper.CreateSqlCommand(_connection, commandType, commandText, parameters))
             {
-                return (T)command.ExecuteScalar();
+                return (T?)command.ExecuteScalar();
             }
         }
         catch (Exception ex)
@@ -155,34 +235,52 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
             throw new DataAccessException(ex.Message, ex);
         }
     }
-
     #endregion
 
     #region Public Async Operations
-
+    
     /// <summary>
     /// Disposes all managed and unmanaged resources asynchronously.
     /// </summary>
     public async ValueTask DisposeAsync()
     {
-        if (_connection.State == ConnectionState.Open)
-            await _connection.CloseAsync().ConfigureAwait(false);
+        if (_connection is not null)
+        {
+            if(_connection.State == ConnectionState.Open)
+                await _connection.CloseAsync().ConfigureAwait(false);
 
-        await _connection.DisposeAsync().ConfigureAwait(false);
+            await _connection.DisposeAsync().ConfigureAwait(false);            
+        }
+
     }
 
     /// <summary>
-    /// Opens the SQL Connection Asynchronously (Use this in an async using Scope)
+    /// Opens a SQL Connection Asynchronously (Use this in an async using Scope)
     /// </summary>
     /// <returns>This Instance of the class.</returns>
-    public async Task<SqlServerDataAccess> OpenAsync()
+    public async Task<SqlServerDataAccess> OpenConnectionAsync()
     {
+        _connection = new SqlConnection(_connectionString);
         await _connection.OpenAsync().ConfigureAwait(false);
         return this;
     }
 
     /// <summary>
-    /// Method which executes the SQL command to retrieve data from database.
+    /// Opens a Readonly SQL Connection Asynchronously (Use this in an async using Scope)
+    /// </summary>
+    /// <returns>This Instance of the class.</returns>
+    public async Task<SqlServerDataAccess> OpenReadonlyConnectionAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_readOnlyConnectionString))
+            throw new DataAccessException("Readonly Connection String is not configured. Please provide a Read Only Connection through one of the Constructors or use the general use OpenConnectionAsync() method.");
+
+        _connection = new SqlConnection(_connectionString);
+        await _connection.OpenAsync().ConfigureAwait(false);
+        return this;
+    }
+    
+    /// <summary>
+    /// Executes a PostgreSql Command against the given connection and returns a data reader object.
     /// </summary>
     /// <param name="commandType">The Command type.</param>
     /// <param name="commandText">The Command text.</param>
@@ -193,7 +291,10 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     public async Task<SqlDataReader> ExecuteReaderAsync(CommandType commandType,
         string commandText, params SqlParameter[] parameters)
     {
-        SqlDataReader reader;
+        if (_connection is null)
+            throw new DataAccessException("Connection is not initialized. Please use OpenConnectionAsync() or OpenReadonlyConnectionAsync() to initialize the connection first.");
+
+        SqlDataReader? reader;
 
         try
         {
@@ -218,7 +319,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     }
 
     /// <summary>
-    /// Executes a Transact-SQL statement against the connection and returns the number of rows affected.
+    /// Executes a psql statement against the connection and returns the number of rows affected.
     /// </summary>
     /// <param name="commandType">The Command type.</param>
     /// <param name="commandText">The Command text.</param>
@@ -229,6 +330,9 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     public async Task<int> ExecuteNonQueryAsync(CommandType commandType,
         string commandText, params SqlParameter[] parameters)
     {
+        if (_connection is null)
+            throw new DataAccessException("Connection is not initialized. Please use OpenConnectionAsync() or OpenReadonlyConnectionAsync() to initialize the connection first.");
+
         try
         {
             SqlCommand command;
@@ -250,7 +354,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     }
 
     /// <summary>
-    /// Executes a TSQL Statement against an Open Connection and returns a Scalar Result Asynchronously.
+    /// Executes a psql Statement against an Open Connection and returns a Scalar Result Asynchronously.
     /// </summary>
     /// <param name="commandType">The Command type.</param>
     /// <param name="commandText">The Command Text.</param>
@@ -261,6 +365,9 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     public async Task<T?> ExecuteScalarAsync<T>(CommandType commandType,
         string commandText, params SqlParameter[] parameters)
     {
+        if (_connection is null)
+            throw new DataAccessException("Connection is not initialized. Please use OpenConnectionAsync() or OpenReadonlyConnectionAsync() to initialize the connection first.");
+
         try
         {
             SqlCommand command;
@@ -280,6 +387,6 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
             throw new DataAccessException(ex.Message, ex);
         }
     }
-
     #endregion
 }
+

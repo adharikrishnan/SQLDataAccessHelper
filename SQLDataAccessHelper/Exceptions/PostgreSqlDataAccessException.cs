@@ -2,10 +2,9 @@
 // Copyright (c) Advaith Harikrishnan. All rights reserved.
 // </copyright>"
 
-namespace SQLDataAccessHelper.PostgreSQL.Exceptions;
+namespace SQLDataAccessHelper.Exceptions;
 
 using Npgsql;
-using SQLDataAccessHelper.Common.Exceptions;
 
 /// <summary>
 /// Exception Class to deal with PostgreSql DataAccess Exceptions.
@@ -26,14 +25,14 @@ public class PostgreSqlDataAccessException : DataAccessException
     /// <summary>
     /// The Default Error Message Template
     /// </summary>
-    private static readonly string _errorMessageTemplate = "A PostgreSql Data Access Exception Occured: {0}";
+    private static readonly string ErrorMessageTemplate = "A PostgreSQL Data Access Exception Occured: {0}";
 
     /// <summary>
     /// Creates an instance of the PostgreSqlDataAccessException class 
     /// </summary>
     /// <param name="message">The Exception Message.</param>
     public PostgreSqlDataAccessException(string message)
-        : base(string.Format(_errorMessageTemplate, message))
+        : base(string.Format(ErrorMessageTemplate, message))
     {
     }
 
@@ -44,7 +43,7 @@ public class PostgreSqlDataAccessException : DataAccessException
     /// <param name="commandText">The Command Text.</param>
     /// <param name="commandType">The Command Type.</param>
     public PostgreSqlDataAccessException(string message, string commandText, string commandType)
-        : base(string.Format(_errorMessageTemplate, message), commandText, commandType)
+        : base(string.Format(ErrorMessageTemplate, message), commandText, commandType)
     {
     }
 
@@ -58,7 +57,7 @@ public class PostgreSqlDataAccessException : DataAccessException
     /// <param name="npgSqlException">The NpgsqlException.</param>
     public PostgreSqlDataAccessException(string message, string commandText, string commandType,
         NpgsqlParameter[]? sqlParameters, NpgsqlException npgSqlException)
-        : base(string.Format(_errorMessageTemplate, message), commandText, commandType)
+        : base(string.Format(ErrorMessageTemplate, message), commandText, commandType)
     {
         this.NpgsqlException = npgSqlException;
         this.SqlParameters = ParseSqlParameters(sqlParameters);
@@ -70,7 +69,7 @@ public class PostgreSqlDataAccessException : DataAccessException
     /// <param name="message">The Exception Message.</param>
     /// <param name="npgSqlException">The NpgsqlException.</param>
     public PostgreSqlDataAccessException(string message, NpgsqlException npgSqlException)
-        : base(string.Format(_errorMessageTemplate, message))
+        : base(string.Format(ErrorMessageTemplate, message))
     {
         this.NpgsqlException = npgSqlException;
     }

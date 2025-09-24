@@ -1,3 +1,6 @@
+// "<copyright file="SqlServerDataAccess.cs">
+// Copyright (c) Advaith Harikrishnan. All rights reserved.
+// </copyright>"
 
 using System.Data;
 using Microsoft.Data.SqlClient;
@@ -20,6 +23,11 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     private SqlConnection? _connection;
     
     /// <summary>
+    /// The Private Data Reader object to manage data reader lifetime.
+    /// </summary>
+    private SqlDataReader? _dataReader;
+    
+    /// <summary>
     /// Private Command Helper Instance
     /// </summary>
     private readonly CommandHelper<SqlConnection, SqlCommand, SqlParameter> _commandHelper = new();
@@ -35,7 +43,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     /// for read actions specifically.
     /// </summary>
     private readonly string? _readOnlyConnectionString;
-
+    
     #region Public Constructors
 
     /// <summary>
@@ -83,8 +91,41 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     }
     
     #endregion
+    
+    #region Private Methods
 
+    /// <summary>
+    /// Closes and disposes the private instance data reader object, if it has been set from a
+    /// previous execute reader operation.
+    /// </summary>
+    private void DisposeExistingReader()
+    {
+        if (_dataReader is null) return;
 
+        if (!_dataReader.IsClosed)
+            _dataReader.Close();
+
+        _dataReader.Dispose();
+        _dataReader = null;
+    }
+
+    /// <summary>
+    /// Closes and disposes the private instance data reader object asynchronously, if it has been set from a
+    /// previous execute reader operation.
+    /// </summary>
+    private async Task DisposeExistingReaderAsync()
+    {
+        if (_dataReader is null) return;
+
+        if (!_dataReader.IsClosed)
+            await _dataReader.CloseAsync().ConfigureAwait(false);
+
+        await _dataReader.DisposeAsync().ConfigureAwait(false);
+        _dataReader = null;
+    }
+
+    #endregion
+    
     #region Public Synchronous Operations
 
     /// <summary>
@@ -92,13 +133,16 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     /// </summary>
     public void Dispose()
     {
-        if (_connection is not null)
-        {
-            if (_connection.State is ConnectionState.Open)
-                _connection.Close();
+        DisposeExistingReader();
+        
+        if (_connection is null) return;
+        
+        if (_connection.State is ConnectionState.Open)
+            _connection.Close();
 
-            _connection.Dispose();
-        }
+        _connection.Dispose();
+        
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -140,8 +184,11 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     {
         if (_connection is null)
             throw new DataAccessException("Connection is not initialized. Please use OpenConnection() or OpenReadonlyConnection() to initialize the connection first.");
-
-        SqlDataReader? reader = null;
+        
+        // In the case there is an open data reader object present on the same connection.
+        DisposeExistingReader();
+        
+        SqlDataReader? reader;
 
         try
         {
@@ -162,6 +209,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
             throw new DataAccessException(ex.Message, ex);
         }
 
+        _dataReader = reader;
         return reader;
     }
 
@@ -180,7 +228,10 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     {
         if (_connection is null)
             throw new DataAccessException("Connection is not initialized. Please use OpenConnection() or OpenReadonlyConnection() to initialize the connection first.");
-
+        
+        // In the case there is an open data reader object present on the same connection.
+        DisposeExistingReader();
+        
         try
         {
             SqlCommand command;
@@ -216,6 +267,9 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
         if (_connection is null)
             throw new DataAccessException("Connection is not initialized. Please use OpenConnection() or OpenReadonlyConnection() to initialize the connection first.");
 
+        // In the case there is an open data reader object present on the same connection.
+        DisposeExistingReader();
+        
         try
         {
             SqlCommand command;
@@ -293,7 +347,10 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     {
         if (_connection is null)
             throw new DataAccessException("Connection is not initialized. Please use OpenConnectionAsync() or OpenReadonlyConnectionAsync() to initialize the connection first.");
-
+        
+        // In the case there is an open data reader object present on the same connection.
+        await DisposeExistingReaderAsync().ConfigureAwait(false);
+        
         SqlDataReader? reader;
 
         try
@@ -315,6 +372,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
             throw new DataAccessException(ex.Message, ex);
         }
 
+        _dataReader = reader;
         return reader;
     }
 
@@ -332,7 +390,10 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     {
         if (_connection is null)
             throw new DataAccessException("Connection is not initialized. Please use OpenConnectionAsync() or OpenReadonlyConnectionAsync() to initialize the connection first.");
-
+        
+        // In the case there is an open data reader object present on the same connection.
+        await DisposeExistingReaderAsync().ConfigureAwait(false);
+        
         try
         {
             SqlCommand command;
@@ -367,7 +428,10 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     {
         if (_connection is null)
             throw new DataAccessException("Connection is not initialized. Please use OpenConnectionAsync() or OpenReadonlyConnectionAsync() to initialize the connection first.");
-
+        
+        // In the case there is an open data reader object present on the same connection.
+        await DisposeExistingReaderAsync().ConfigureAwait(false);
+        
         try
         {
             SqlCommand command;

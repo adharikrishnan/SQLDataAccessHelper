@@ -5,7 +5,7 @@
 using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
-using SQLDataAccessHelper.Common.Helpers;
+using SQLDataAccessHelper.Helpers;
 using SQLDataAccessHelper.Models;
 using SQLDataAccessHelper.Exceptions;
 
@@ -179,8 +179,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     /// <returns>
     /// Returns a Npgsql Data Reader object.
     /// </returns>
-    public SqlDataReader ExecuteReader(CommandType commandType, string commandText,
-        params SqlParameter[] parameters)
+    public SqlDataReader ExecuteReader(CommandType commandType, string commandText, params SqlParameter[] parameters)
     {
         if (_connection is null)
             throw new DataAccessException("Connection is not initialized. Please use OpenConnection() or OpenReadonlyConnection() to initialize the connection first.");
@@ -223,8 +222,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     /// <returns>
     /// Number of rows affected as an Integer.
     /// </returns>
-    public int ExecuteNonQuery(CommandType commandType, string commandText,
-        params SqlParameter[] parameters)
+    public int ExecuteNonQuery(CommandType commandType, string commandText, params SqlParameter[] parameters)
     {
         if (_connection is null)
             throw new DataAccessException("Connection is not initialized. Please use OpenConnection() or OpenReadonlyConnection() to initialize the connection first.");
@@ -261,8 +259,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     /// <returns>
     /// The Scalar Value as a generic.
     /// </returns>
-    public T? ExecuteScalar<T>(CommandType commandType, string commandText,
-        params SqlParameter[] parameters)
+    public T? ExecuteScalar<T>(CommandType commandType, string commandText, params SqlParameter[] parameters)
     {
         if (_connection is null)
             throw new DataAccessException("Connection is not initialized. Please use OpenConnection() or OpenReadonlyConnection() to initialize the connection first.");
@@ -342,8 +339,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     /// <returns>
     /// Returns a SQL Data Reader object.
     /// </returns>
-    public async Task<SqlDataReader> ExecuteReaderAsync(CommandType commandType,
-        string commandText, params SqlParameter[] parameters)
+    public async Task<SqlDataReader> ExecuteReaderAsync(CommandType commandType, string commandText, params SqlParameter[] parameters)
     {
         if (_connection is null)
             throw new DataAccessException("Connection is not initialized. Please use OpenConnectionAsync() or OpenReadonlyConnectionAsync() to initialize the connection first.");
@@ -385,8 +381,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     /// <returns>
     /// Number of rows affected as an Integer.
     /// </returns>
-    public async Task<int> ExecuteNonQueryAsync(CommandType commandType,
-        string commandText, params SqlParameter[] parameters)
+    public async Task<int> ExecuteNonQueryAsync(CommandType commandType, string commandText, params SqlParameter[] parameters)
     {
         if (_connection is null)
             throw new DataAccessException("Connection is not initialized. Please use OpenConnectionAsync() or OpenReadonlyConnectionAsync() to initialize the connection first.");
@@ -423,8 +418,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     /// <returns>
     /// The Scalar Value as a generic.
     /// </returns>
-    public async Task<T?> ExecuteScalarAsync<T>(CommandType commandType,
-        string commandText, params SqlParameter[] parameters)
+    public async Task<T?> ExecuteScalarAsync<T>(CommandType commandType, string commandText, params SqlParameter[] parameters)
     {
         if (_connection is null)
             throw new DataAccessException("Connection is not initialized. Please use OpenConnectionAsync() or OpenReadonlyConnectionAsync() to initialize the connection first.");
@@ -453,4 +447,3 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     }
     #endregion
 }
-

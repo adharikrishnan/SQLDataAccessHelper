@@ -2,7 +2,7 @@
 // Copyright (c) Advaith Harikrishnan. All rights reserved.
 // </copyright>"
 
-namespace SQLDataAccessHelper.Common.Helpers;
+namespace SQLDataAccessHelper.Helpers;
 
 using System.Data;
 using System.Data.Common;

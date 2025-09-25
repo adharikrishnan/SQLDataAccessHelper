@@ -5,7 +5,7 @@
 using System.Data;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
-using SQLDataAccessHelper.Common.Helpers;
+using SQLDataAccessHelper.Helpers;
 using SQLDataAccessHelper.Models;
 using SQLDataAccessHelper.Exceptions;
 
@@ -180,8 +180,7 @@ public class PostgreSqlDataAccess : IDisposable, IAsyncDisposable
     /// <returns>
     /// Returns a Npgsql Data Reader object.
     /// </returns>
-    public NpgsqlDataReader ExecuteReader(CommandType commandType, string commandText,
-        params NpgsqlParameter[] parameters)
+    public NpgsqlDataReader ExecuteReader(CommandType commandType, string commandText, params NpgsqlParameter[] parameters)
     {
         if (_connection is null)
             throw new DataAccessException(
@@ -225,8 +224,7 @@ public class PostgreSqlDataAccess : IDisposable, IAsyncDisposable
     /// <returns>
     /// Number of rows affected as an Integer.
     /// </returns>
-    public int ExecuteNonQuery(CommandType commandType, string commandText,
-        params NpgsqlParameter[] parameters)
+    public int ExecuteNonQuery(CommandType commandType, string commandText, params NpgsqlParameter[] parameters)
     {
         if (_connection is null)
             throw new DataAccessException(
@@ -264,8 +262,7 @@ public class PostgreSqlDataAccess : IDisposable, IAsyncDisposable
     /// <returns>
     /// The Scalar Value as a generic.
     /// </returns>
-    public T? ExecuteScalar<T>(CommandType commandType, string commandText,
-        params NpgsqlParameter[] parameters)
+    public T? ExecuteScalar<T>(CommandType commandType, string commandText, params NpgsqlParameter[] parameters)
     {
         if (_connection is null)
             throw new DataAccessException(
@@ -350,8 +347,7 @@ public class PostgreSqlDataAccess : IDisposable, IAsyncDisposable
     /// <returns>
     /// Returns a SQL Data Reader object.
     /// </returns>
-    public async Task<NpgsqlDataReader> ExecuteReaderAsync(CommandType commandType,
-        string commandText, params NpgsqlParameter[] parameters)
+    public async Task<NpgsqlDataReader> ExecuteReaderAsync(CommandType commandType, string commandText, params NpgsqlParameter[] parameters)
     {
         if (_connection is null)
             throw new DataAccessException(
@@ -394,8 +390,7 @@ public class PostgreSqlDataAccess : IDisposable, IAsyncDisposable
     /// <returns>
     /// Number of rows affected as an Integer.
     /// </returns>
-    public async Task<int> ExecuteNonQueryAsync(CommandType commandType,
-        string commandText, params NpgsqlParameter[] parameters)
+    public async Task<int> ExecuteNonQueryAsync(CommandType commandType, string commandText, params NpgsqlParameter[] parameters)
     {
         if (_connection is null)
             throw new DataAccessException(
@@ -433,8 +428,7 @@ public class PostgreSqlDataAccess : IDisposable, IAsyncDisposable
     /// <returns>
     /// The Scalar Value as a generic.
     /// </returns>
-    public async Task<T?> ExecuteScalarAsync<T>(CommandType commandType,
-        string commandText, params NpgsqlParameter[] parameters)
+    public async Task<T?> ExecuteScalarAsync<T>(CommandType commandType, string commandText, params NpgsqlParameter[] parameters)
     {
         if (_connection is null)
             throw new DataAccessException(

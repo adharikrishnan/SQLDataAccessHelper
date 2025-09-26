@@ -14,6 +14,8 @@ A Helper Library for  SQL Server and PostgreSQL to help streamline database inte
 ## Example
 
 ```csharp
+using SqlDataAccessHelper.Core.SQLServer;
+
 SqlServerDataAccess dataAccess = new SqlServerDataAccess("Your Connection String");
 
 using (dataAccess.Open())

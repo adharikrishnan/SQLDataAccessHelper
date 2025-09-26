@@ -1,6 +1,8 @@
 SQL Data Access Helper Core
 ===========
   [![License LGPLv3](https://img.shields.io/badge/license-Apache%20License%202.0-blue)](http://www.apache.org/licenses/LICENSE-2.0)
+  
+  [![NuGet Version](https://img.shields.io/nuget/v/SqlDataAccessHelper.Core.svg)](https://www.nuget.org/packages/SqlDataAccessHelper.Core/)
 
 ## Overview
 

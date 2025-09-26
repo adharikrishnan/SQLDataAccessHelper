@@ -9,9 +9,13 @@
         <Authors>Advaith H</Authors>
         <Description>A Helper Library for PostgreSQL and SQL Server to help streamline database interactions for database-first architectures.</Description>
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+        <Copyright>Copyright©Advaith H 2025 </Copyright>
+        <RepositoryUrl>https://github.com/adharikrishnan/SqlDataAccessHelper.Core</RepositoryUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>
+        <None Include="../README.md" pack="true" PackagePath="." />
         <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.0"/>
         <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0"/>
         <PackageReference Include="Npgsql" Version="8.0.5"/>

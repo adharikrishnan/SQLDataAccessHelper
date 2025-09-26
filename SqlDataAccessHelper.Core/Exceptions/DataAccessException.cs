@@ -2,7 +2,7 @@
 // Copyright (c) Advaith Harikrishnan. All rights reserved.
 // </copyright>"
 
-namespace SQLDataAccessHelper.Exceptions;
+namespace SqlDataAccessHelper.Core.Exceptions;
 
 using System.Data.Common;
 

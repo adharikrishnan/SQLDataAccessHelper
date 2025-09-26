@@ -1,37 +1,37 @@
-// "<copyright file="SqlServerDataAccess.cs">
+// "<copyright file="PostgreSqlDataAccess.cs">
 // Copyright (c) Advaith Harikrishnan. All rights reserved.
 // </copyright>"
 
 using System.Data;
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
-using SQLDataAccessHelper.Helpers;
-using SQLDataAccessHelper.Models;
-using SQLDataAccessHelper.Exceptions;
+using Npgsql;
+using SqlDataAccessHelper.Core.Exceptions;
+using SqlDataAccessHelper.Core.Helpers;
+using SqlDataAccessHelper.Core.Models;
 
-namespace SQLDataAccessHelper.SQLServer;
+namespace SqlDataAccessHelper.Core.PostgreSQL;
 
 /// <summary>
 /// Managed Helper class that help streamline connections, read and write operations to
-/// a SQL Server Database.
+/// a PostgreSQL Database with the provided Connection String
 /// </summary>
-public class SqlServerDataAccess : IDisposable, IAsyncDisposable
+public class PostgreSqlDataAccess : IDisposable, IAsyncDisposable
 {
     /// <summary>
-    /// The Private Sql Connection Instance.
+    /// The Private Npgsql Connection Instance.
     /// </summary>
-    private SqlConnection? _connection;
-    
+    private NpgsqlConnection? _connection;
+
     /// <summary>
     /// The Private Data Reader object to manage data reader lifetime.
     /// </summary>
-    private SqlDataReader? _dataReader;
-    
+    private NpgsqlDataReader? _dataReader;
+
     /// <summary>
     /// Private Command Helper Instance
     /// </summary>
-    private readonly CommandHelper<SqlConnection, SqlCommand, SqlParameter> _commandHelper = new();
-    
+    private readonly CommandHelper<NpgsqlConnection, NpgsqlCommand, NpgsqlParameter> _commandHelper = new();
+
     /// <summary>
     /// The general purpose connection string that can be used
     /// for both read and write Actions.
@@ -39,59 +39,59 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     private readonly string _connectionString;
 
     /// <summary>
-    /// The readonly connection string that can be used
+    /// The read only connection string that can be used
     /// for read actions specifically.
     /// </summary>
     private readonly string? _readOnlyConnectionString;
-    
+
     #region Public Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SqlServerDataAccess"/> class.
+    /// Initializes a new instance of the <see cref="PostgreSqlDataAccess"/> class.
     /// This Constructor Initializes an instance of class with the Default Connection String
     /// from the IConfiguration Instance with the given connection string path.
     /// </summary>
     /// <param name="configuration">The IConfiguration instance.</param>
     /// <param name="connectionStringPath">The Connection String Path.</param>
-    public SqlServerDataAccess(IConfiguration configuration, string connectionStringPath)
+    public PostgreSqlDataAccess(IConfiguration configuration, string connectionStringPath)
     {
         _connectionString = configuration[connectionStringPath]
-                                ?? throw new DataAccessException(
-                                    $"Connection String could not be found from the specified path - {connectionStringPath}");
+                            ?? throw new DataAccessException(
+                                $"Connection String could not be found from the specified path - {connectionStringPath}");
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SqlServerDataAccess "/> class.
+    /// Initializes a new instance of the <see cref="PostgreSqlDataAccess "/> class.
     /// </summary>
     /// <param name="sqlCredentials">The SQL Credentials.</param>
-    public SqlServerDataAccess(SqlCredentials sqlCredentials)
+    public PostgreSqlDataAccess(SqlCredentials sqlCredentials)
     {
         _connectionString = sqlCredentials.ConnectionString;
         _readOnlyConnectionString = sqlCredentials.ReadOnlyConnectionString;
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SqlServerDataAccess "/> class.
+    /// Initializes a new instance of the <see cref="PostgreSqlDataAccess "/> class.
     /// </summary>
     /// <param name="connectionString">The General SQL Purpose Connection String</param>
-    public SqlServerDataAccess(string connectionString)
+    public PostgreSqlDataAccess(string connectionString)
     {
         _connectionString = connectionString;
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SqlServerDataAccess "/> class.
+    /// Initializes a new instance of the <see cref="PostgreSqlDataAccess "/> class.
     /// </summary>
     /// <param name="connectionString">The General SQL Purpose Connection String</param>
     /// <param name="readOnlyConnectionString"></param>
-    public SqlServerDataAccess(string connectionString, string readOnlyConnectionString)
+    public PostgreSqlDataAccess(string connectionString, string readOnlyConnectionString)
     {
         _connectionString = connectionString;
         _readOnlyConnectionString = readOnlyConnectionString;
     }
-    
+
     #endregion
-    
+
     #region Private Methods
 
     /// <summary>
@@ -125,7 +125,7 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     }
 
     #endregion
-    
+
     #region Public Synchronous Operations
 
     /// <summary>
@@ -134,14 +134,14 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     public void Dispose()
     {
         DisposeExistingReader();
-        
+
         if (_connection is null) return;
-        
+
         if (_connection.State is ConnectionState.Open)
             _connection.Close();
 
         _connection.Dispose();
-        
+
         GC.SuppressFinalize(this);
     }
 
@@ -149,27 +149,28 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     /// Opens a SQL Connection (Use this in a using Scope)
     /// </summary>
     /// <returns>This Instance of the class.</returns>
-    public SqlServerDataAccess OpenConnection()
+    public PostgreSqlDataAccess OpenConnection()
     {
-        _connection = new SqlConnection(_connectionString);
+        _connection = new NpgsqlConnection(_connectionString);
         _connection.Open();
         return this;
     }
-    
+
     /// <summary>
     /// Opens a Readonly SQL Connection (Use this in a using Scope)
     /// </summary>
     /// <returns>This Instance of the class.</returns>
-    public SqlServerDataAccess OpenReadonlyConnection()
+    public PostgreSqlDataAccess OpenReadonlyConnection()
     {
         if (string.IsNullOrWhiteSpace(_readOnlyConnectionString))
-            throw new DataAccessException("Readonly Connection String is not configured. Please provide a Read Only Connection through one of the Constructors or use the general use OpenConnection() method.");
+            throw new DataAccessException(
+                "Readonly Connection String is not configured. Please provide a Read Only Connection through one of the Constructors or use the general use OpenConnection() method.");
 
-        _connection = new SqlConnection(_readOnlyConnectionString); 
+        _connection = new NpgsqlConnection(_readOnlyConnectionString);
         _connection.Open();
         return this;
     }
-    
+
     /// <summary>
     /// Executes a psql Command against the given connection and returns a data reader object.
     /// </summary>
@@ -179,19 +180,20 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     /// <returns>
     /// Returns a Npgsql Data Reader object.
     /// </returns>
-    public SqlDataReader ExecuteReader(CommandType commandType, string commandText, params SqlParameter[] parameters)
+    public NpgsqlDataReader ExecuteReader(CommandType commandType, string commandText, params NpgsqlParameter[] parameters)
     {
         if (_connection is null)
-            throw new DataAccessException("Connection is not initialized. Please use OpenConnection() or OpenReadonlyConnection() to initialize the connection first.");
-        
+            throw new DataAccessException(
+                "Connection is not initialized. Please use OpenConnection() or OpenReadonlyConnection() to initialize the connection first.");
+
         // In the case there is an open data reader object present on the same connection.
         DisposeExistingReader();
-        
-        SqlDataReader? reader;
+
+        NpgsqlDataReader? reader;
 
         try
         {
-            SqlCommand? command;
+            NpgsqlCommand? command;
             using (command = _commandHelper.CreateSqlCommand(_connection, commandType, commandText, parameters))
             {
                 reader = command.ExecuteReader();
@@ -199,10 +201,10 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            if (ex is SqlException sqlException)
+            if (ex is NpgsqlException npgSqlException)
             {
-                throw new SqlServerDataAccessException(sqlException.Message, commandText, commandType.ToString(),
-                    parameters, sqlException);
+                throw new PostgreSqlDataAccessException(npgSqlException.Message, commandText, commandType.ToString(),
+                    parameters, npgSqlException);
             }
 
             throw new DataAccessException(ex.Message, ex);
@@ -222,17 +224,18 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     /// <returns>
     /// Number of rows affected as an Integer.
     /// </returns>
-    public int ExecuteNonQuery(CommandType commandType, string commandText, params SqlParameter[] parameters)
+    public int ExecuteNonQuery(CommandType commandType, string commandText, params NpgsqlParameter[] parameters)
     {
         if (_connection is null)
-            throw new DataAccessException("Connection is not initialized. Please use OpenConnection() or OpenReadonlyConnection() to initialize the connection first.");
-        
+            throw new DataAccessException(
+                "Connection is not initialized. Please use OpenConnection() or OpenReadonlyConnection() to initialize the connection first.");
+
         // In the case there is an open data reader object present on the same connection.
         DisposeExistingReader();
-        
+
         try
         {
-            SqlCommand command;
+            NpgsqlCommand command;
             using (command = _commandHelper.CreateSqlCommand(_connection, commandType, commandText, parameters))
             {
                 return command.ExecuteNonQuery();
@@ -240,10 +243,10 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            if (ex is SqlException sqlException)
+            if (ex is NpgsqlException npgSqlException)
             {
-                throw new SqlServerDataAccessException(sqlException.Message, commandText, commandType.ToString(),
-                    parameters, sqlException);
+                throw new PostgreSqlDataAccessException(npgSqlException.Message, commandText, commandType.ToString(),
+                    parameters, npgSqlException);
             }
 
             throw new DataAccessException(ex.Message, ex);
@@ -259,17 +262,18 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     /// <returns>
     /// The Scalar Value as a generic.
     /// </returns>
-    public T? ExecuteScalar<T>(CommandType commandType, string commandText, params SqlParameter[] parameters)
+    public T? ExecuteScalar<T>(CommandType commandType, string commandText, params NpgsqlParameter[] parameters)
     {
         if (_connection is null)
-            throw new DataAccessException("Connection is not initialized. Please use OpenConnection() or OpenReadonlyConnection() to initialize the connection first.");
+            throw new DataAccessException(
+                "Connection is not initialized. Please use OpenConnection() or OpenReadonlyConnection() to initialize the connection first.");
 
         // In the case there is an open data reader object present on the same connection.
         DisposeExistingReader();
-        
+
         try
         {
-            SqlCommand command;
+            NpgsqlCommand command;
             using (command = _commandHelper.CreateSqlCommand(_connection, commandType, commandText, parameters))
             {
                 return (T?)command.ExecuteScalar();
@@ -277,41 +281,44 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            if (ex is SqlException sqlException)
+            if (ex is NpgsqlException npgSqlException)
             {
-                throw new SqlServerDataAccessException(sqlException.Message, commandText, commandType.ToString(),
-                    parameters, sqlException);
+                throw new PostgreSqlDataAccessException(npgSqlException.Message, commandText, commandType.ToString(),
+                    parameters, npgSqlException);
             }
 
             throw new DataAccessException(ex.Message, ex);
         }
     }
+
     #endregion
 
     #region Public Async Operations
-    
+
     /// <summary>
     /// Disposes all managed and unmanaged resources asynchronously.
     /// </summary>
     public async ValueTask DisposeAsync()
     {
-        if (_connection is not null)
-        {
-            if(_connection.State == ConnectionState.Open)
-                await _connection.CloseAsync().ConfigureAwait(false);
+        await DisposeExistingReaderAsync().ConfigureAwait(false);
 
-            await _connection.DisposeAsync().ConfigureAwait(false);            
-        }
+        if (_connection is null) return;
 
+        if (_connection.State == ConnectionState.Open)
+            await _connection.CloseAsync().ConfigureAwait(false);
+
+        await _connection.DisposeAsync().ConfigureAwait(false);
+        
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
     /// Opens a SQL Connection Asynchronously (Use this in an async using Scope)
     /// </summary>
     /// <returns>This Instance of the class.</returns>
-    public async Task<SqlServerDataAccess> OpenConnectionAsync()
+    public async Task<PostgreSqlDataAccess> OpenConnectionAsync()
     {
-        _connection = new SqlConnection(_connectionString);
+        _connection = new NpgsqlConnection(_connectionString);
         await _connection.OpenAsync().ConfigureAwait(false);
         return this;
     }
@@ -320,16 +327,17 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     /// Opens a Readonly SQL Connection Asynchronously (Use this in an async using Scope)
     /// </summary>
     /// <returns>This Instance of the class.</returns>
-    public async Task<SqlServerDataAccess> OpenReadonlyConnectionAsync()
+    public async Task<PostgreSqlDataAccess> OpenReadonlyConnectionAsync()
     {
         if (string.IsNullOrWhiteSpace(_readOnlyConnectionString))
-            throw new DataAccessException("Readonly Connection String is not configured. Please provide a Read Only Connection through one of the Constructors or use the general use OpenConnectionAsync() method.");
+            throw new DataAccessException(
+                "Readonly Connection String is not configured. Please provide a Read Only Connection through one of the Constructors or use the general use OpenConnectionAsync() method.");
 
-        _connection = new SqlConnection(_connectionString);
+        _connection = new NpgsqlConnection(_connectionString);
         await _connection.OpenAsync().ConfigureAwait(false);
         return this;
     }
-    
+
     /// <summary>
     /// Executes a PostgreSql Command against the given connection and returns a data reader object.
     /// </summary>
@@ -339,19 +347,20 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     /// <returns>
     /// Returns a SQL Data Reader object.
     /// </returns>
-    public async Task<SqlDataReader> ExecuteReaderAsync(CommandType commandType, string commandText, params SqlParameter[] parameters)
+    public async Task<NpgsqlDataReader> ExecuteReaderAsync(CommandType commandType, string commandText, params NpgsqlParameter[] parameters)
     {
         if (_connection is null)
-            throw new DataAccessException("Connection is not initialized. Please use OpenConnectionAsync() or OpenReadonlyConnectionAsync() to initialize the connection first.");
-        
+            throw new DataAccessException(
+                "Connection is not initialized. Please use OpenConnectionAsync() or OpenReadonlyConnectionAsync() to initialize the connection first.");
+
         // In the case there is an open data reader object present on the same connection.
         await DisposeExistingReaderAsync().ConfigureAwait(false);
-        
-        SqlDataReader? reader;
+
+        NpgsqlDataReader? reader;
 
         try
         {
-            SqlCommand command;
+            NpgsqlCommand command;
             await using (command = _commandHelper.CreateSqlCommand(_connection, commandType, commandText, parameters))
             {
                 reader = await command.ExecuteReaderAsync().ConfigureAwait(false);
@@ -359,10 +368,10 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            if (ex is SqlException sqlException)
+            if (ex is NpgsqlException npgSqlException)
             {
-                throw new SqlServerDataAccessException(sqlException.Message, commandText, commandType.ToString(),
-                    parameters, sqlException);
+                throw new PostgreSqlDataAccessException(npgSqlException.Message, commandText, commandType.ToString(),
+                    parameters, npgSqlException);
             }
 
             throw new DataAccessException(ex.Message, ex);
@@ -381,17 +390,18 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     /// <returns>
     /// Number of rows affected as an Integer.
     /// </returns>
-    public async Task<int> ExecuteNonQueryAsync(CommandType commandType, string commandText, params SqlParameter[] parameters)
+    public async Task<int> ExecuteNonQueryAsync(CommandType commandType, string commandText, params NpgsqlParameter[] parameters)
     {
         if (_connection is null)
-            throw new DataAccessException("Connection is not initialized. Please use OpenConnectionAsync() or OpenReadonlyConnectionAsync() to initialize the connection first.");
-        
+            throw new DataAccessException(
+                "Connection is not initialized. Please use OpenConnectionAsync() or OpenReadonlyConnectionAsync() to initialize the connection first.");
+
         // In the case there is an open data reader object present on the same connection.
         await DisposeExistingReaderAsync().ConfigureAwait(false);
-        
+
         try
         {
-            SqlCommand command;
+            NpgsqlCommand command;
             await using (command = _commandHelper.CreateSqlCommand(_connection, commandType, commandText, parameters))
             {
                 return await command.ExecuteNonQueryAsync().ConfigureAwait(false);
@@ -399,10 +409,10 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            if (ex is SqlException sqlException)
+            if (ex is NpgsqlException npgSqlException)
             {
-                throw new SqlServerDataAccessException(sqlException.Message, commandText, commandType.ToString(),
-                    parameters, sqlException);
+                throw new PostgreSqlDataAccessException(npgSqlException.Message, commandText, commandType.ToString(),
+                    parameters, npgSqlException);
             }
 
             throw new DataAccessException(ex.Message, ex);
@@ -418,17 +428,18 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
     /// <returns>
     /// The Scalar Value as a generic.
     /// </returns>
-    public async Task<T?> ExecuteScalarAsync<T>(CommandType commandType, string commandText, params SqlParameter[] parameters)
+    public async Task<T?> ExecuteScalarAsync<T>(CommandType commandType, string commandText, params NpgsqlParameter[] parameters)
     {
         if (_connection is null)
-            throw new DataAccessException("Connection is not initialized. Please use OpenConnectionAsync() or OpenReadonlyConnectionAsync() to initialize the connection first.");
-        
+            throw new DataAccessException(
+                "Connection is not initialized. Please use OpenConnectionAsync() or OpenReadonlyConnectionAsync() to initialize the connection first.");
+
         // In the case there is an open data reader object present on the same connection.
         await DisposeExistingReaderAsync().ConfigureAwait(false);
-        
+
         try
         {
-            SqlCommand command;
+            NpgsqlCommand command;
             await using (command = _commandHelper.CreateSqlCommand(_connection, commandType, commandText, parameters))
             {
                 return (T?)await command.ExecuteScalarAsync().ConfigureAwait(false);
@@ -436,14 +447,15 @@ public class SqlServerDataAccess : IDisposable, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            if (ex is SqlException sqlException)
+            if (ex is NpgsqlException npgSqlException)
             {
-                throw new SqlServerDataAccessException(sqlException.Message, commandText, commandType.ToString(),
-                    parameters, sqlException);
+                throw new PostgreSqlDataAccessException(npgSqlException.Message, commandText, commandType.ToString(),
+                    parameters, npgSqlException);
             }
 
             throw new DataAccessException(ex.Message, ex);
         }
     }
+
     #endregion
 }
